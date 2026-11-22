@@ -21,13 +21,14 @@ function assertScope(request: RpcRequest, sender: string) {
 // Invoke from the browser only. Review must present the exact job and obtain explicit human assent.
 export function browserWallet(options: {
   provider: InjectedProvider; sender: string; token: string; endpoint: string;
-  review: (job: Readonly<WalletJob>) => Promise<boolean>; transport?: typeof fetch; clock?: () => number;
+  review: (job: Readonly<WalletJob>) => Promise<boolean>; transport?: typeof fetch; clock?: () => number; registration?: Readonly<Record<string, string>>;
 }) {
   const { provider, sender, token, endpoint, review } = options;
   const transport = options.transport ?? fetch;
   const clock = options.clock ?? Date.now;
   let invalid = false;
   let busy = false;
+  let registrationDispatched = false;
   const invalidate = () => { invalid = true; };
   const events = ['accountsChanged', 'chainChanged', 'disconnect'];
   for (const event of events) provider.on(event, invalidate);
@@ -47,6 +48,15 @@ export function browserWallet(options: {
       const job = await exchange({ action: 'poll' }) as WalletJob | null;
       if (!job) return;
       try {
+        if (options.registration) {
+          if (job.challenge) throw Error('signatures are outside registration scope');
+          if (job.request.method === 'eth_sendTransaction') {
+            const actual = job.request.params?.[0] as Record<string, unknown> | undefined;
+            const expected = Object.entries(options.registration);
+            if (registrationDispatched || !actual || Object.keys(actual).length !== expected.length ||
+              !expected.every(([key, value]) => actual[key] === value)) throw Error('registration envelope changed or already dispatched');
+          }
+        }
         if (job.challenge) {
           checkTakerChallenge(job.challenge, sender, clock());
           const expected = takerWalletRequest(job.challenge);
@@ -65,6 +75,7 @@ export function browserWallet(options: {
         }
         if (invalid || clock() >= job.expires) throw Error('wallet job expired or invalidated');
         if (job.challenge) checkTakerChallenge(job.challenge, sender, clock());
+        if (options.registration && job.request.method === 'eth_sendTransaction') registrationDispatched = true;
         const result = await provider.request(job.request);
         await exchange({ action: 'complete', id: job.id, result });
       } catch (error) {

@@ -198,7 +198,7 @@ export class WalletAdapter {
   }
 
   // The caller presents the exact frozen request for human review before invoking this method.
-  async submit(prepared: Prepared) {
+  async submit(prepared: Prepared, reviewedRegistration?: Readonly<Record<string, string>>) {
     const intent = this.#prepared.get(prepared);
     check(intent && !this.#busy && !this.attempt(intent.key), 'duplicate or unrecognized wallet intent');
     this.#busy = true;
@@ -214,6 +214,12 @@ export class WalletAdapter {
       await this.checkWallet();
       this.#checkIntent(intent);
       const request = Object.freeze({ ...prepared.request, ...fees });
+      if (reviewedRegistration) {
+        check(prepared.action === 'register' &&
+          Object.keys(reviewedRegistration).length === Object.keys(request).length &&
+          Object.entries(request).every(([key, value]) => reviewedRegistration[key] === value),
+        'registration envelope differs from reviewed transaction');
+      }
       this.#claim(intent, request);
       return await this.#dispatch(intent, request);
     } finally {
