@@ -2,7 +2,9 @@
 
 Exact-amount stablecoin invoice settlement on Celo. Daidai prepares a USDt-to-cNGN conversion and a separate exact cNGN payout. A dedicated wallet owner approves each operation.
 
-This repository contains the Architecture A adapter and its offline test suite. Wallet enrollment is **NO-GO** pending the next authorized verification phase.
+P08 registration, agent identity, and Loops enrollment are complete. Daidai is ERC-8004 agent **10103** on Celo Mainnet (42220), registered by the dedicated wallet `0xe4f6b961e91b1c5c17ff34a33cbb5a998589e49e` in transaction `0xdefee0ab7ede1b8d787b195218cc922681364af1f42264f4332fd3309672161b`. The operator confirmed all three Loops dashboard checks. See the [registration outcome](P08B23-REGISTRATION-OUTCOME.md).
+
+Live USDt-to-cNGN settlement is **not production-authorized**. The repository contains the Architecture A adapter, its offline test suite, and a fixture-only frontend.
 
 ## Review and reproduce
 
