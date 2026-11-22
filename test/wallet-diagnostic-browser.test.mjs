@@ -22,7 +22,11 @@ const cases = [
   ['ambiguous', 'PROVIDER_AMBIGUOUS'],
   ['another-wallet', 'PROVIDER_NOT_METAMASK'],
   ['expired', 'BOOTSTRAP_EXPIRED'],
-  ['rejected', 'BOOTSTRAP_REJECTED'],
+  ['rejected', 'BOOTSTRAP_MALFORMED'],
+  ['no-fragment', 'BOOTSTRAP_MISSING'],
+  ['reload', 'BOOTSTRAP_MISSING'],
+  ['rpc-failed', 'PASS'],
+  ['rpc-stale', 'PASS'],
   ['exception', 'STARTUP_EXCEPTION'],
   ['success', 'PASS'],
   ['announced', 'PASS'],
@@ -45,6 +49,11 @@ for (const [mode, expected] of cases) {
           calls.push(method);
           if (mode === 'exception') throw new Error('private error payload');
           if (method === 'eth_chainId') return mode === 'wrong-chain' ? '0x1' : '0xa4ec';
+          if (method === 'eth_getBlockByNumber') {
+            if (mode === 'rpc-failed') throw Error('Private RPC failure');
+            return {number:'0x100',timestamp:'0x'+(Math.floor(Date.now()/1000)-(mode==='rpc-stale'?100:0)).toString(16),hash:'0x'+'ab'.repeat(32)};
+          }
+          if (method === 'eth_getBalance') return '0x1000';
           if (method === 'eth_accounts') {
             if (mode === 'unshared') return [];
             return [mode === 'wrong-account' ? '0x0000000000000000000000000000000000000001' : account];
@@ -66,18 +75,30 @@ for (const [mode, expected] of cases) {
     const path = ['missing', 'ambiguous', 'another-wallet'].includes(mode) ? false : true;
     let bootstrapRequests = 0;
     page.on('request', request => { if (request.url().endsWith('/bootstrap')) bootstrapRequests++; });
-    await page.goto(host.origin);
+    await page.goto(mode === 'no-fragment' ? host.origin : host.bootstrapUrl);
+    if (mode === 'reload') {
+      await page.waitForFunction(() => location.hash === '');
+      await page.reload();
+    }
     const button = page.getByRole('button', { name: 'Run read-only check' });
     assert.deepEqual(await page.evaluate(() => window.calls), []);
     await button.click();
     await page.waitForFunction(code => document.querySelector('#status').textContent.startsWith(code), expected);
     assert.equal(bootstrapRequests, path ? 1 : 0);
+    if (['success','announced','rpc-failed','rpc-stale'].includes(mode)) {
+      const expectedRpc = mode==='rpc-failed' ? 'RPC_FAILED' : mode==='rpc-stale' ? 'RPC_STALE' : 'RPC_PASS';
+      await page.waitForFunction(code => document.querySelector('#rpc').textContent.startsWith(code), expectedRpc);
+    }
     const methods = await page.evaluate(() => window.calls);
-    if (['success','announced','wrong-account','unshared'].includes(mode)) {
+    if (['success','announced'].includes(mode)) {
+      assert.deepEqual(methods,['eth_chainId','eth_accounts','eth_getBlockByNumber','eth_getBalance','eth_chainId','eth_accounts']);
+    } else if (['rpc-failed','rpc-stale'].includes(mode)) {
+      assert.deepEqual(methods,['eth_chainId','eth_accounts','eth_getBlockByNumber']);
+    } else if (['wrong-account','unshared'].includes(mode)) {
       assert.deepEqual(methods, ['eth_chainId', 'eth_accounts']);
     } else if (mode === 'wrong-chain' || mode === 'exception') {
       assert.deepEqual(methods, ['eth_chainId']);
-      assert.doesNotMatch(await page.getByRole('status').textContent(), /private error payload/);
+      assert.doesNotMatch(await page.locator('#status').textContent(), /private error payload/);
     } else assert.deepEqual(methods, []);
     if (mode === 'announced') assert.match(await page.locator('#legacy').textContent(), /PROVIDER_AMBIGUOUS/);
     assert.equal((await page.request.post(host.origin + '/wallet', { data: { action: 'poll' } })).status(), 404);
@@ -87,15 +108,18 @@ for (const [mode, expected] of cases) {
 test('diagnostic bootstrap enforces same-origin authentication and one-use ticket', async t => {
   const host = await startWalletDiagnostic(account);
   t.after(() => host.close());
-  const html = await (await fetch(host.origin)).text();
-  const ticket = html.match(/data-ticket="([0-9a-f]+)"/)?.[1];
+  const ticket = new URL(host.bootstrapUrl).hash.slice(1);
   assert(ticket);
   async function status(origin, token) {
-    return (await fetch(host.origin + '/bootstrap', { method: 'POST', headers: { Origin: origin,
-      Authorization: 'Bearer ' + token } })).status;
+    const headers = { Origin: origin };
+    if (token !== undefined) headers.Authorization = 'Bearer ' + token;
+    const response = await fetch(host.origin + '/bootstrap', { method:'POST', headers });
+    return [response.status,(await response.json()).code];
   }
-  assert.equal(await status('https://unexpected.example', ticket), 403);
-  assert.equal(await status(host.origin, 'wrong'), 403);
-  assert.equal(await status(host.origin, ticket), 200);
-  assert.equal(await status(host.origin, ticket), 403);
+  assert.deepEqual(await status('https://unexpected.example', ticket), [403,'BOOTSTRAP_CONTEXT_MISMATCH']);
+  assert.deepEqual(await status(host.origin), [403,'BOOTSTRAP_MISSING']);
+  assert.deepEqual(await status(host.origin,'wrong'), [403,'BOOTSTRAP_MALFORMED']);
+  assert.deepEqual(await status(host.origin,'0'.repeat(64)), [403,'BOOTSTRAP_INCORRECT']);
+  assert.deepEqual(await status(host.origin,ticket), [200,undefined]);
+  assert.deepEqual(await status(host.origin,ticket), [403,'BOOTSTRAP_CONSUMED']);
 });

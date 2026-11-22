@@ -9,12 +9,11 @@ import { walletBoundary } from './wallet-boundary.ts';
 const shell = '<!doctype html><meta charset="utf-8"><title>Daidai local wallet bridge</title><h1>Daidai wallet bridge</h1><button id="start">Start local session</button><p id="status"></p><script type="module" src="/entry.js"></script>';
 const entry = `
 import {browserWallet} from '/browser-wallet.ts';
-import {bootstrapWallet, detectWallets, startupStatus} from '/wallet-startup.ts';
+import {bootstrapWallet, detectWallets, startupStatus, takeBootstrapFragment} from '/wallet-startup.ts';
 const detected = detectWallets(window);
 const expected = document.querySelector('#registration');
 const reviewed = expected && JSON.parse(expected.textContent);
-const fragment = location.hash.slice(1);
-history.replaceState(null, '', '/');
+const fragment = takeBootstrapFragment();
 const status = document.querySelector('#status');
 let stop = () => {};
 let cancelled = false;
@@ -72,17 +71,17 @@ export async function startWalletHost(senderAddress: string, registration?: {
       res.end(body);
     }
     try {
-      if (!origin || req.headers.host !== new URL(origin).host) return reply(403);
       const path = req.url;
-      if (req.method === 'GET' && path === '/') return reply(200, page, 'text/html; charset=utf-8');
-      if (req.method === 'GET' && path && asset.has(path)) return reply(200, asset.get(path), 'text/javascript');
-      if (req.method !== 'POST' || req.headers.origin !== origin) return reply(403);
       if (path === '/bootstrap') {
-        const status = bootstrap.consume(req.headers.authorization);
-        if (status !== 200) return reply(status);
+        const { status, code } = bootstrap.consumeRequest(req, origin);
+        if (status !== 200) return reply(status, JSON.stringify({ code }), 'application/json');
         registration?.start();
         return reply(200, JSON.stringify({ token: boundary.token, sender }), 'application/json');
       }
+      if (!origin || req.headers.host !== new URL(origin).host) return reply(403);
+      if (req.method === 'GET' && path === '/') return reply(200, page, 'text/html; charset=utf-8');
+      if (req.method === 'GET' && path && asset.has(path)) return reply(200, asset.get(path), 'text/javascript');
+      if (req.method !== 'POST' || req.headers.origin !== origin) return reply(403);
       if (path !== '/wallet' || !bootstrap.used) return reply(404);
       if (req.headers['content-type'] !== 'application/json') return reply(415);
       const chunks: Buffer[] = [];

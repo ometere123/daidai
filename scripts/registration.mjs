@@ -1,3 +1,4 @@
+import { copyLocalSessionUrl } from './local-session-clipboard.mjs';
 import { createHash } from 'node:crypto';
 import { createPublicClient, encodeFunctionData, formatEther, http, toHex } from 'viem';
 import { celo } from 'viem/chains';
@@ -95,11 +96,11 @@ try {
     gasBudgetCELO: formatEther(ceilings.gas * ceilings.maxFeePerGas), existingAttempt: session.existing }, null, 2));
   if (session.existing) process.exitCode = 2;
   if (session.host) {
-    console.log('Open this one-use localhost URL manually. Keep it private. Ctrl+C closes the session.');
-    console.log(session.host.bootstrapUrl);
     let timer;
     let interrupted;
     try {
+      copyLocalSessionUrl(session.host.bootstrapUrl);
+      console.log('Paste the one-use address from your local Chrome clipboard. Ctrl+C closes the session.');
       const result = await Promise.race([session.result, new Promise(resolve => {
         interrupted = () => resolve({ status: 'session_cancelled_or_interrupted' });
         process.once('SIGINT', interrupted);

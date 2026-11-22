@@ -1,5 +1,6 @@
 type StartupCode = 'PROVIDER_MISSING' | 'PROVIDER_AMBIGUOUS' | 'PROVIDER_NOT_METAMASK' |
-  'BOOTSTRAP_REJECTED' | 'BOOTSTRAP_EXPIRED' | 'STARTUP_EXCEPTION';
+  'BOOTSTRAP_REJECTED' | 'BOOTSTRAP_EXPIRED' | 'STARTUP_EXCEPTION' | 'BOOTSTRAP_MISSING' |
+  'BOOTSTRAP_MALFORMED' | 'BOOTSTRAP_INCORRECT' | 'BOOTSTRAP_CONSUMED' | 'BOOTSTRAP_CONTEXT_MISMATCH';
 
 const messages: Record<StartupCode, string> = {
   PROVIDER_MISSING: 'MetaMask was not injected. Check its extension site access for this localhost address.',
@@ -7,6 +8,11 @@ const messages: Record<StartupCode, string> = {
   PROVIDER_NOT_METAMASK: 'The available injected wallet could not be identified as MetaMask.',
   BOOTSTRAP_REJECTED: 'Local session authorization was rejected. The one-use session may be invalid or already used.',
   BOOTSTRAP_EXPIRED: 'The local session expired before startup.',
+  BOOTSTRAP_MISSING: 'No credential arrived. A bare address or a reload after the fragment was removed can cause this.',
+  BOOTSTRAP_MALFORMED: 'The credential has an invalid format.',
+  BOOTSTRAP_INCORRECT: 'The credential does not match this session.',
+  BOOTSTRAP_CONSUMED: 'This session credential was already used.',
+  BOOTSTRAP_CONTEXT_MISMATCH: 'The localhost Host or Origin did not match.',
   STARTUP_EXCEPTION: 'Local startup failed unexpectedly. No internal error details were displayed.',
 };
 
@@ -63,11 +69,25 @@ export function detectWallets(target: EventTarget) {
   };
 }
 
+export function takeBootstrapFragment() {
+  const fragment = location.hash.slice(1);
+  history.replaceState(null, '', '/');
+  return fragment;
+}
+
 export async function bootstrapWallet(ticket: string) {
-  const response = await fetch('/bootstrap', { method: 'POST', headers: { Authorization: 'Bearer ' + ticket },
+  const response = await fetch('/bootstrap', { method: 'POST',
+    headers: ticket ? { Authorization: 'Bearer ' + ticket } : {},
     redirect: 'error', credentials: 'same-origin', cache: 'no-store' });
-  if (response.status === 410) throw new StartupError('BOOTSTRAP_EXPIRED');
-  if (response.status === 401 || response.status === 403) throw new StartupError('BOOTSTRAP_REJECTED');
-  if (!response.ok) throw new StartupError('STARTUP_EXCEPTION');
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    const code = body?.code;
+    if (typeof code === 'string' && code.startsWith('BOOTSTRAP_') && Object.hasOwn(messages, code)) {
+      throw new StartupError(code as StartupCode);
+    }
+    if (response.status === 410) throw new StartupError('BOOTSTRAP_EXPIRED');
+    if (response.status === 401 || response.status === 403) throw new StartupError('BOOTSTRAP_REJECTED');
+    throw new StartupError('STARTUP_EXCEPTION');
+  }
   return response.json();
 }

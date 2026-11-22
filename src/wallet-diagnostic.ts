@@ -4,13 +4,14 @@ import { stripTypeScriptTypes } from 'node:module';
 import { oneUseBootstrap } from './localhost-bootstrap.ts';
 
 const entry = `
-import { bootstrapWallet, detectWallets, legacyWalletGate, startupStatus } from '/wallet-startup.js';
+import { bootstrapWallet, detectWallets, legacyWalletGate, startupStatus, takeBootstrapFragment } from '/wallet-startup.js';
 const button = document.querySelector('button');
 const status = document.querySelector('#status');
 const legacy = document.querySelector('#legacy');
+const rpc = document.querySelector('#rpc');
 const page = document.querySelector('main');
-const { expected, ticket } = page.dataset;
-delete page.dataset.ticket;
+const { expected } = page.dataset;
+const ticket = takeBootstrapFragment();
 const detected = detectWallets(window);
 button.disabled = false;
 button.addEventListener('click', async () => {
@@ -31,7 +32,23 @@ button.addEventListener('click', async () => {
       status.textContent = 'WRONG_ACCOUNT — Select the enrolled Daidai account. Bootstrap passed.';
       return;
     }
-    status.textContent = 'PASS — MetaMask detected, session authenticated, and ' + expected + ' verified on Celo Mainnet (42220).';
+    status.textContent = 'PASS — MetaMask detected, bootstrap authenticated, and ' + expected + ' verified on Celo Mainnet (42220).';
+    try {
+      const head = await provider.request({ method: 'eth_getBlockByNumber', params: ['latest', false] });
+      const quantity = /^0x(?:0|[1-9a-f][0-9a-f]*)$/i;
+      if (!head || !quantity.test(head.number) || !quantity.test(head.timestamp) || !/^0x[0-9a-f]{64}$/i.test(head.hash)) throw Error('invalid head');
+      const age = Math.floor(Date.now() / 1000) - Number(BigInt(head.timestamp));
+      if (age < -10 || age > 60) { rpc.textContent = 'RPC_STALE — Latest block age: ' + age + ' seconds.'; return; }
+      const balance = await provider.request({ method: 'eth_getBalance', params: [expected, head.number] });
+      if (!quantity.test(balance)) throw Error('invalid balance');
+      if (await provider.request({ method: 'eth_chainId' }) !== '0xa4ec' ||
+        (await provider.request({ method: 'eth_accounts' }))[0]?.toLowerCase() !== expected) {
+        rpc.textContent = 'RPC_CONTEXT_CHANGED — Account or chain changed during the check.';
+        return;
+      }
+      rpc.textContent = 'RPC_PASS — Block ' + BigInt(head.number) + ' · age ' + age +
+        ' s · balance ' + BigInt(balance) + ' wei CELO · hash ' + head.hash;
+    } catch { rpc.textContent = 'RPC_FAILED — MetaMask could not return a valid recent block and balance.'; }
   } catch (error) { status.textContent = startupStatus(error); }
   finally { detected.close(); }
 }, {once:true});
@@ -43,10 +60,10 @@ export async function startWalletDiagnostic(expected: string, options: { port?: 
   const bootstrap = oneUseBootstrap(Date.now() + (options.durationMs ?? 300_000));
   const startup = stripTypeScriptTypes(readFileSync(new URL('./wallet-startup.ts', import.meta.url), 'utf8'));
   const page = `<!doctype html><meta charset="utf-8"><title>Daidai MetaMask startup diagnostic</title>
-<main data-expected="${account}" data-ticket="${bootstrap.ticket}">
+<main data-expected="${account}">
 <h1>Daidai MetaMask startup diagnostic</h1>
 <p>This local diagnostic checks previously granted access to ${account} on Celo Mainnet (42220). It does not open a wallet permission or transaction prompt.</p>
-<button disabled>Run read-only check</button><p id="status" role="status">Waiting to run.</p><p id="legacy"></p></main>
+<button disabled>Run read-only check</button><p id="status" role="status">Waiting to run.</p><p id="legacy"></p><p id="rpc" role="status"></p></main>
 <script type="module" src="/entry.js"></script>`;
   let origin = '';
   const server = createServer((req, res) => {
@@ -56,6 +73,10 @@ export async function startWalletDiagnostic(expected: string, options: { port?: 
         'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' });
       res.end(body);
     }
+    if (req.url === '/bootstrap') {
+      const { status, code } = bootstrap.consumeRequest(req, origin);
+      return reply(status, JSON.stringify(status === 200 ? { expected: account } : { code }), 'application/json');
+    }
     if (!origin || req.headers.host !== new URL(origin).host) return reply(403);
     if (req.method === 'GET') {
       if (req.url === '/') return reply(200, page, 'text/html; charset=utf-8');
@@ -63,10 +84,7 @@ export async function startWalletDiagnostic(expected: string, options: { port?: 
       if (req.url === '/wallet-startup.js') return reply(200, startup, 'text/javascript');
       return reply(404);
     }
-    if (req.url !== '/bootstrap') return reply(404);
-    if (req.method !== 'POST' || req.headers.origin !== origin) return reply(403);
-    const status = bootstrap.consume(req.headers.authorization);
-    return status === 200 ? reply(200, JSON.stringify({ expected: account }), 'application/json') : reply(status);
+    return reply(404);
   });
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
@@ -75,7 +93,7 @@ export async function startWalletDiagnostic(expected: string, options: { port?: 
   const bound = server.address();
   if (!bound || typeof bound === 'string') { server.close(); throw Error('Diagnostic host not bound.'); }
   origin = 'http://127.0.0.1:' + bound.port;
-  return { origin, close: () => new Promise<void>((resolve, reject) => {
+  return { origin, bootstrapUrl: origin + '/#' + bootstrap.ticket, close: () => new Promise<void>((resolve, reject) => {
     server.close(error => error ? reject(error) : resolve());
     server.closeIdleConnections();
   }) };
