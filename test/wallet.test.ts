@@ -1,3 +1,4 @@
+import { feeFields, feeLimits, origin, readFixture } from './rpc-fixture.ts';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -16,11 +17,11 @@ const code = process.env.DAIDAI_ATTRIBUTION_CODE ?? 'celo_daidai_fixture';
 const hash: Hex = `0x${'11'.repeat(32)}`;
 const otherHash: Hex = `0x${'22'.repeat(32)}`;
 const now = Date.parse('2026-11-22T12:00:00Z');
-const funds = { usdt: 2000n, cngn: 1500n, gas: 10n, allowance: 2000n, swapGas: 6n, payoutGas: 4n };
+const funds = { usdt: 2000000n, cngn: 1500000000n, gas: 10n, allowance: 2000000n, swapGas: 6n, payoutGas: 4n };
 const invoice = {
   id: 'invoice', version: 1, source: 'fixture', nonce: '0123456789abcdef0123456789abcdef',
-  chain, sell: usdt, sellDecimals: 6, buy: cngn, buyDecimals: 6, buyAmount: '1500',
-  recipient, maxSell: '1200', approver: sender, taker: sender, expires: now + 120_000,
+  chain, sell: usdt, sellDecimals: 6, buy: cngn, buyDecimals: 6, buyAmount: '1500000000',
+  recipient, maxSell: '1200000', approver: sender, taker: sender, expires: now + 120_000,
 };
 
 function wire(boundTaker: Hex = sender) {
@@ -29,19 +30,19 @@ function wire(boundTaker: Hex = sender) {
     order: encodeAbiParameters(orderAbi, [{
       info: { reactor, swapper: maker, nonce, deadline, validator: preferredFiller,
         validation: encodeAbiParameters(fillerAbi, [[boundTaker], deadline]) },
-      input: { token: cngn, amount: 750n, maxAmount: 750n },
-      outputs: [{ token: usdt, amount: 550n, recipient: maker }],
+      input: { token: cngn, amount: 750000000n, maxAmount: 750000000n },
+      outputs: [{ token: usdt, amount: 550000n, recipient: maker }],
     }]),
     sig: '0x1234' as Hex,
   }));
   const swap = encodeFunctionData({ abi: reactorAbi, functionName: 'executeBatch', args: [orders] });
   return { data: { status: 'quoted', quote: {
-    taker: sender as string, reactor, spender: reactor as string, feeAmount: '2', takerPays: '1102', buyAmount: '1500',
+    taker: sender as string, reactor, spender: reactor as string, feeAmount: '220', takerPays: '1100220', buyAmount: '1500000000',
     expiresAt: new Date(now + 45_000).toISOString(), orderDeadline: new Date(now + 50_000).toISOString(),
     latestOrderDeadline: new Date(now + 50_000).toISOString(),
   }, transactions: {
     approval: { to: usdt, data: encodeFunctionData({ abi: erc20Abi, functionName: 'approve',
-      args: [reactor, 1102n] }), value: '0', chainId: chain },
+      args: [reactor, 1100220n] }), value: '0', chainId: chain },
     swap: { to: reactor as string, data: swap, value: '0', chainId: chain },
   } } };
 }
@@ -74,12 +75,11 @@ function setup(t: TestContext) {
   const mockChain = new MockChain(join(root, 'mock.db'));
   const provider = new MockProvider();
   let clock = now;
-  let accountCode: Hex = '0x';
-  let debit = 1102n;
+  const rpc = readFixture(sender, maker, 1500000000n, 1100220n);
   let spike = new Spike(file, mockChain, code);
   const makeAdapter = () => new WalletAdapter({
     sender, spike, provider, clock: () => clock, timeoutMs: 25,
-    preflight: async () => ({ accountCode, swap: { debit, received: 1500n } }),
+    reader: rpc.reader, fees: feeLimits, origin,
   });
   let adapter = makeAdapter();
   const { digest } = spike.create(invoice);
@@ -88,22 +88,17 @@ function setup(t: TestContext) {
   return {
     get adapter() { return adapter; }, get spike() { return spike; }, provider,
     clock(value: number) { clock = value; },
-    code(value: Hex) { accountCode = value; },
-    debit(value: bigint) { debit = value; },
+    rpc, code(value: Hex) { rpc.state.code = value; },
+    debit(value: bigint) { rpc.state.simulatedDebit = value; },
     reopen() { adapter.dispose(); spike.close(); spike = new Spike(file, mockChain, code); adapter = makeAdapter(); },
     quote() { spike.request(invoice.id); adapter.acceptQuote(invoice.id, wire(), funds); },
   };
 }
 
-function receipt(tx: Tx, to: string, txHash: Hex = hash) {
-  return { hash: txHash, ok: true, finalized: true, chain, from: sender, to, token: cngn,
-    amount: '1500', debit: '1102', tx };
-}
-
 test('real RFQ shape binds exact-out taker to selected sender', async t => {
   const f = setup(t);
   const request = await f.adapter.prepareRfq(invoice.id);
-  assert.deepEqual(request, { chainId: chain, sellToken: usdt, buyToken: cngn, buyAmount: '1500', taker: sender });
+  assert.deepEqual(request, { chainId: chain, sellToken: usdt, buyToken: cngn, buyAmount: '1500000000', taker: sender });
   assert.deepEqual(f.provider.calls.map(call => call.method), ['eth_accounts', 'eth_chainId']);
 });
 
@@ -123,8 +118,8 @@ for (const fault of ['sender', 'chain', 'accountsChanged', 'chainChanged', 'disc
 for (const [name, modify, error] of [
   ['taker', (w: ReturnType<typeof wire>) => { w.data.quote.taker = recipient; }, /taker/],
   ['spender', (w: ReturnType<typeof wire>) => { w.data.quote.spender = recipient; }, /spender/],
-  ['output', (w: ReturnType<typeof wire>) => { w.data.quote.buyAmount = '1499'; }, /exact output/],
-  ['cap', (w: ReturnType<typeof wire>) => { w.data.quote.takerPays = '1201'; }, /cap/],
+  ['output', (w: ReturnType<typeof wire>) => { w.data.quote.buyAmount = '1499999999'; }, /exact output/],
+  ['cap', (w: ReturnType<typeof wire>) => { w.data.quote.takerPays = '1200001'; }, /cap/],
   ['target', (w: ReturnType<typeof wire>) => { w.data.transactions.swap.to = usdt; }, /envelope/],
   ['chain', (w: ReturnType<typeof wire>) => { w.data.transactions.swap.chainId = 1; }, /envelope/],
   ['approval bytes', (w: ReturnType<typeof wire>) => { w.data.transactions.approval.data = '0x1234'; }, /approval/],
@@ -144,16 +139,16 @@ for (const [name, modify, error] of [
 
 test('pre-quote approval enforces cap and encodes exact spender, sender and tag', async t => {
   const f = setup(t);
-  assert.throws(() => f.adapter.prepareApproval(invoice.id, 1201n), /cap/);
-  const prepared = f.adapter.prepareApproval(invoice.id, 1200n);
-  const raw = encodeFunctionData({ abi: erc20Abi, functionName: 'approve', args: [reactor, 1200n] });
+  assert.throws(() => f.adapter.prepareApproval(invoice.id, 1200001n), /cap/);
+  const prepared = f.adapter.prepareApproval(invoice.id, 1200000n);
+  const raw = encodeFunctionData({ abi: erc20Abi, functionName: 'approve', args: [reactor, 1200000n] });
   assert.deepEqual(prepared.request, { from: sender, to: usdt, data: tag(raw, code), value: '0x0', chainId: '0xa4ec' });
   await assert.rejects(f.adapter.submit({ ...prepared }), /unrecognized/);
   assert.deepEqual(await f.adapter.submit(prepared), { status: 'hash_returned', hash });
-  assert.deepEqual(f.provider.sends()[0].params, [prepared.request]);
+  assert.deepEqual(f.provider.sends()[0].params, [{ ...prepared.request, ...feeFields }]);
   assert.deepEqual(fromDataSuffix(prepared.request.data)?.codes, [code]);
   f.reopen();
-  await assert.rejects(f.adapter.submit(f.adapter.prepareApproval(invoice.id, 1200n)), /duplicate/);
+  await assert.rejects(f.adapter.submit(f.adapter.prepareApproval(invoice.id, 1200000n)), /duplicate/);
   assert.equal(f.provider.sends().length, 1);
 });
 
@@ -165,16 +160,16 @@ test('ERC-8004 registration uses direct wallet and one tagged register call', as
   assert.equal(prepared.request.data.slice(0, 10), '0xf2c298be');
   assert.deepEqual(fromDataSuffix(prepared.request.data)?.codes, [code]);
   await f.adapter.submit(prepared);
-  assert.deepEqual(f.provider.sends()[0].params, [prepared.request]);
+  assert.deepEqual(f.provider.sends()[0].params, [{ ...prepared.request, ...feeFields }]);
 });
 
 test('swap requires matching simulation and freshly valid quote before handoff', async t => {
   const f = setup(t);
   f.quote();
   const prepared = f.adapter.prepareSwap(invoice.id, funds);
-  f.debit(1103n);
+  f.debit(1100221n);
   await assert.rejects(f.adapter.submit(prepared), /simulation mismatch/);
-  f.debit(1102n);
+  f.debit(1100220n);
   f.clock(now + 41_000);
   await assert.rejects(f.adapter.submit(prepared), /headroom/);
   assert.equal(f.provider.sends().length, 0);
@@ -197,30 +192,34 @@ test('ambiguous swap requires late independent exact receipt, then sends one exa
   f.quote();
   const prepared = f.adapter.prepareSwap(invoice.id, funds);
   assert.equal(prepared.request.data, tag(wire().data.transactions.swap.data, code));
-  f.provider.outcome = () => new Promise(() => {});
-  assert.deepEqual(await f.adapter.submit(prepared), { status: 'needs_reconciliation' });
+  assert.deepEqual(await f.adapter.submit(prepared), { status: 'hash_returned', hash });
   f.reopen();
-  f.adapter.reconcileSwap(invoice.id, 'expired');
-  f.adapter.reconcileSwap(invoice.id, 'filled');
+  await f.adapter.reconcileSwap(invoice.id, 'expired');
+  await f.adapter.reconcileSwap(invoice.id, 'filled');
   assert.equal(f.spike.read(invoice.id).state, 'needs_reconciliation');
   assert.throws(() => f.spike.claimPayout(invoice.id), /transition/);
   const swap = f.spike.read(invoice.id).swap!;
-  f.adapter.reconcileSwap(invoice.id, 'filled', { ...receipt(swap, sender), amount: '1499' });
+  f.rpc.mine(hash, swap, sender, 1499999999n);
+  await f.adapter.reconcileSwap(invoice.id, 'filled');
   assert.equal(f.spike.read(invoice.id).state, 'needs_reconciliation');
-  f.adapter.reconcileSwap(invoice.id, 'filled', receipt(swap, sender));
+  f.rpc.mine(hash, swap, sender);
+  await f.adapter.reconcileSwap(invoice.id, 'filled');
   f.spike.claimPayout(invoice.id);
   const payout = f.adapter.preparePayout(invoice.id, funds);
   assert.equal(payout.request.to, cngn);
   assert.equal(payout.request.from, sender);
-  assert.deepEqual(decodeFunctionData({ abi: erc20Abi, data: payout.request.data }).args, [recipient, 1500n]);
+  assert.deepEqual(decodeFunctionData({ abi: erc20Abi, data: payout.request.data }).args, [recipient, 1500000000n]);
   assert.deepEqual(fromDataSuffix(payout.request.data)?.codes, [code]);
   f.provider.outcome = async () => otherHash;
   const results = await Promise.allSettled([f.adapter.submit(payout), f.adapter.submit(payout)]);
   assert.deepEqual(results.map(r => r.status), ['fulfilled', 'rejected']);
   f.reopen();
   assert.throws(() => f.adapter.preparePayout(invoice.id, funds), /already claimed/);
-  assert.throws(() => f.adapter.reconcilePayout(invoice.id, receipt(f.spike.read(invoice.id).payout!, recipient)), /hash/);
-  f.adapter.reconcilePayout(invoice.id, receipt(f.spike.read(invoice.id).payout!, recipient, otherHash));
+  f.rpc.mine(hash, f.spike.read(invoice.id).payout!, recipient);
+  await f.adapter.reconcilePayout(invoice.id);
+  assert.equal(f.spike.read(invoice.id).state, 'needs_reconciliation');
+  f.rpc.mine(otherHash, f.spike.read(invoice.id).payout!, recipient);
+  await f.adapter.reconcilePayout(invoice.id);
   assert.equal(f.spike.read(invoice.id).state, 'paid');
   assert.equal(f.provider.sends().length, 2);
 });
@@ -242,4 +241,29 @@ test('account changes during an asynchronous wallet check invalidate the session
   };
   await assert.rejects(f.adapter.prepareRfq(invoice.id), /changed/);
   assert.equal(f.provider.sends().length, 0);
+});
+
+test('wallet timeout without a hash blocks settlement and resend after restart', async t => {
+  const f = setup(t);
+  f.quote();
+  f.provider.outcome = () => new Promise(() => {});
+  assert.deepEqual(await f.adapter.submit(f.adapter.prepareSwap(invoice.id, funds)), { status: 'needs_reconciliation' });
+  const swap = f.spike.read(invoice.id).swap!;
+  f.rpc.mine(hash, swap, sender);
+  f.reopen();
+  await f.adapter.reconcileSwap(invoice.id, 'filled');
+  assert.equal(f.spike.read(invoice.id).state, 'needs_reconciliation');
+  assert(!f.rpc.calls.includes('eth_getTransactionReceipt'));
+  assert.throws(() => f.adapter.prepareSwap(invoice.id, funds), /already attempted/);
+});
+
+
+test('a caller-supplied receipt object cannot promote an invoice', async t => {
+  const f = setup(t);
+  f.quote();
+  await f.adapter.submit(f.adapter.prepareSwap(invoice.id, funds));
+  const forged = { hash, receipt: { ok: true, finalized: true, chain, from: sender, to: sender,
+    token: cngn, amount: '1500000000', debit: '1100220', tx: f.spike.read(invoice.id).swap! } };
+  f.spike.reconcileSwap(invoice.id, 'filled', forged);
+  assert.equal(f.spike.read(invoice.id).state, 'needs_reconciliation');
 });

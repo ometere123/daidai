@@ -1,3 +1,5 @@
+import { isVerifiedAuthorization, type VerifiedAuthorization } from './authorization.ts';
+import { verified, type VerifiedSettlement } from './celo.ts';
 import { createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { fromDataSuffix, toDataSuffix } from '@celo/attribution-tags';
@@ -143,7 +145,19 @@ export class Spike {
       .run(JSON.stringify(next), next.revision, record.commitment.invoice.id, record.revision);
     check(result.changes === 1, 'concurrent claim');
   }
+  authorizeVerified(id: string, proof: VerifiedAuthorization, now: number) {
+    const r = this.read(id);
+    const { invoice, digest } = r.commitment;
+    check(isVerifiedAuthorization(proof) && proof.digest === digest && proof.approver === invoice.approver &&
+      proof.recipient === invoice.recipient && proof.expires === invoice.expires && now < proof.expires,
+      'verified authorization required');
+    this.move(r, 'authorized', {
+      approval: { digest, approver: proof.approver },
+      consent: { digest, recipient: proof.recipient, evidence: 'verified EIP-712 recipient consent' },
+    });
+  }
   authorize(id: string, approval: Approval, consent: Consent | undefined, now: number) {
+    check(this.wallet, 'synthetic authorization is restricted to the mock chain');
     const r = this.read(id);
     const { invoice, digest } = r.commitment;
     if (approval.digest !== digest || approval.approver !== invoice.approver || now >= invoice.expires ||
@@ -200,11 +214,11 @@ export class Spike {
     this.wallet.send(swapId, swap);
     return swapId;
   }
-  reconcileSwap(id: string, report: 'failed' | 'expired' | 'filled', evidence?: Receipt | null) {
+  reconcileSwap(id: string, report: 'failed' | 'expired' | 'filled', evidence?: VerifiedSettlement | null) {
     const r = this.read(id);
     check(r.swapId && r.swap && !r.payoutId &&
       (r.state === 'swap_broadcast' || r.state === 'needs_reconciliation'), 'no unsettled swap');
-    const receipt = evidence === undefined ? this.wallet?.receipt(r.swapId) : evidence;
+    const receipt = evidence === undefined ? this.wallet?.receipt(r.swapId) : evidence ? verified(evidence)?.receipt : undefined;
     const { invoice } = r.commitment;
     if (receipt?.ok && receipt.finalized && receipt.chain === invoice.chain &&
       receipt.from === invoice.taker && receipt.to === invoice.taker && receipt.token === invoice.buy &&
@@ -239,10 +253,10 @@ export class Spike {
     if (crash) throw Error('simulated crash after payout broadcast');
     return payoutId;
   }
-  reconcilePayout(id: string, evidence?: Receipt | null) {
+  reconcilePayout(id: string, evidence?: VerifiedSettlement | null) {
     const r = this.read(id);
     check(r.payoutId && r.payout && (r.state === 'payout_broadcast' || r.state === 'needs_reconciliation'), 'no unsettled payout');
-    const receipt = evidence === undefined ? this.wallet?.receipt(r.payoutId) : evidence;
+    const receipt = evidence === undefined ? this.wallet?.receipt(r.payoutId) : evidence ? verified(evidence)?.receipt : undefined;
     const { invoice } = r.commitment;
     if (receipt?.ok && receipt.finalized && receipt.chain === invoice.chain &&
       receipt.from === invoice.taker && receipt.to === invoice.recipient && receipt.token === invoice.buy &&

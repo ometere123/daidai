@@ -1,12 +1,14 @@
+import { type CeloReader, type FeeCeilings } from './celo.ts';
+import { verifyAuthorization, type SignedAuthorization } from './authorization.ts';
 import { encodeFunctionData, erc20Abi, parseAbi, type Hex } from 'viem';
 import {
   address, atomic, chain, check, reactor, registry, tag, verifyTag,
-  type Funds, type Receipt, type Spike, type Tx,
+  type Funds, type Spike, type Tx,
 } from './invoice.ts';
 import { exactOutRequest, parseTextileQuote } from './textile.ts';
 
 export interface InjectedProvider {
-  request(args: { method: string; params?: unknown[] }): Promise<unknown>;
+  request(args: { method: string; params?: unknown[] }, deadline?: number): Promise<unknown>;
   on(event: string, listener: () => void): unknown;
   removeListener(event: string, listener: () => void): unknown;
 }
@@ -15,14 +17,9 @@ const identityAbi = parseAbi(['function register(string agentURI) returns (uint2
 type Action = 'approval' | 'register' | 'swap' | 'payout';
 type WalletRequest = Readonly<{ from: string; to: string; data: Hex; value: '0x0'; chainId: '0xa4ec' }>;
 type Attempt = { status: string; hash: string | null; request: string };
-type Preflight = {
-  accountCode: Hex;
-  // Independent simulation must report net transfers for this exact tagged call.
-  swap?: { debit: bigint; received: bigint };
-};
 type Prepared = Readonly<{ action: Action; request: WalletRequest; expires: number }>;
 type Intent = { key: string; id?: string; revision?: number; funds?: Funds; raw: Tx; prepared: Prepared };
-type ReceiptEvidence = Receipt & { hash: Hex };
+
 const walletEvents = ['accountsChanged', 'chainChanged', 'disconnect'];
 const isHash = (value: unknown): value is Hex => typeof value === 'string' && /^0x[a-fA-F0-9]{64}$/.test(value);
 
@@ -30,7 +27,9 @@ export class WalletAdapter {
   readonly #sender: string;
   readonly #provider: InjectedProvider;
   readonly #spike: Spike;
-  readonly #preflight: (call: WalletRequest) => Promise<Preflight>;
+  readonly #reader: CeloReader;
+  readonly #fees: FeeCeilings;
+  readonly #origin: string;
   readonly #timeoutMs: number;
   readonly #clock: () => number;
   readonly #prepared = new WeakMap<Prepared, Intent>();
@@ -40,13 +39,15 @@ export class WalletAdapter {
 
   constructor(options: {
     sender: string; provider: InjectedProvider; spike: Spike;
-    preflight: (call: WalletRequest) => Promise<Preflight>;
+    reader: CeloReader; fees: FeeCeilings; origin: string;
     timeoutMs?: number; clock?: () => number;
   }) {
     this.#sender = address(options.sender);
     this.#provider = options.provider;
     this.#spike = options.spike;
-    this.#preflight = options.preflight;
+    this.#reader = options.reader;
+    this.#fees = Object.freeze({ ...options.fees });
+    this.#origin = options.origin;
     this.#timeoutMs = options.timeoutMs ?? 60_000;
     this.#clock = options.clock ?? Date.now;
     check(Number.isSafeInteger(this.#timeoutMs) && this.#timeoutMs > 0, 'invalid timeout');
@@ -78,6 +79,12 @@ export class WalletAdapter {
     check(r.commitment.invoice.taker === this.#sender, 'invoice taker differs from pinned wallet');
     check(this.#clock() < r.commitment.invoice.expires, 'invoice expired');
     return r;
+  }
+
+  async authorizeInvoice(id: string, proof: SignedAuthorization) {
+    const { invoice, digest } = this.#invoice(id).commitment;
+    const verified = await verifyAuthorization(invoice, digest, this.#origin, proof, this.#clock());
+    this.#spike.authorizeVerified(id, verified, this.#clock());
   }
 
   async prepareRfq(id: string) {
@@ -178,29 +185,29 @@ export class WalletAdapter {
     try {
       await this.checkWallet();
       this.#checkIntent(intent);
-      const preflight = await this.#preflight(prepared.request);
-      check(preflight.accountCode === '0x', 'smart or delegated wallet unsupported');
-      if (prepared.action === 'swap') {
-        const quote = this.#invoice(intent.id!).quote!;
-        check(preflight.swap?.debit === atomic(quote.takerPays) &&
-          preflight.swap.received === atomic(quote.buyAmount), 'swap simulation mismatch');
-      }
+      const r = prepared.action === 'swap' ? this.#invoice(intent.id!) : undefined;
+      const fees = await this.#reader.preflight(prepared.request, this.#fees, r && {
+        action: 'swap', sender: this.#sender, recipient: this.#sender,
+        buyToken: r.commitment.invoice.buy, sellToken: r.commitment.invoice.sell,
+        amount: atomic(r.quote!.buyAmount), debit: atomic(r.quote!.takerPays),
+      });
       await this.checkWallet();
       this.#checkIntent(intent);
-      this.#claim(intent);
-      return await this.#dispatch(intent);
+      const request = Object.freeze({ ...prepared.request, ...fees });
+      this.#claim(intent, request);
+      return await this.#dispatch(intent, request);
     } finally {
       this.#busy = false;
     }
   }
 
-  #claim(intent: Intent) {
+  #claim(intent: Intent, request: WalletRequest) {
     const db = this.#spike.db;
     db.exec('BEGIN IMMEDIATE');
     try {
       this.#checkIntent(intent);
       db.prepare('INSERT INTO wallet_attempts VALUES (?, ?, ?, ?, NULL)').run(
-        intent.key, this.#sender, JSON.stringify(intent.prepared.request), 'pending_wallet');
+        intent.key, this.#sender, JSON.stringify(request), 'pending_wallet');
       if (intent.prepared.action === 'swap') {
         const { swap } = this.#spike.claimSwap(intent.id!, this.#clock(), intent.funds!);
         check(swap.data === intent.prepared.request.data, 'state claimed different swap bytes');
@@ -216,7 +223,7 @@ export class WalletAdapter {
     }
   }
 
-  async #dispatch({ key, id, prepared }: Intent) {
+  async #dispatch({ key, id, prepared }: Intent, request: WalletRequest) {
     const update = this.#spike.db.prepare('UPDATE wallet_attempts SET status = ?, hash = ? WHERE key = ?');
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
@@ -224,7 +231,7 @@ export class WalletAdapter {
         timer = setTimeout(() => reject(Error('wallet response timeout')), this.#timeoutMs);
       });
       const result = await Promise.race([timeout,
-        this.#provider.request({ method: 'eth_sendTransaction', params: [prepared.request] })]);
+        this.#provider.request({ method: 'eth_sendTransaction', params: [request] }, Date.now() + Math.min(this.#timeoutMs, prepared.expires - this.#clock()))]);
       check(isHash(result), 'wallet response has no transaction hash');
       update.run('hash_returned', result.toLowerCase(), key);
       return { status: 'hash_returned' as const, hash: result };
@@ -240,20 +247,33 @@ export class WalletAdapter {
     }
   }
 
-  reconcileSwap(id: string, report: 'failed' | 'expired' | 'filled', receipt?: ReceiptEvidence) {
-    this.#spike.reconcileSwap(id, report, this.#matchReceipt(id, 'swap', receipt));
+  async reconcileSwap(id: string, report: 'failed' | 'expired' | 'filled') {
+    let verified;
+    try { verified = await this.#verify(id, 'swap'); }
+    finally { this.#spike.reconcileSwap(id, report, verified ?? null); }
   }
 
-  reconcilePayout(id: string, receipt?: ReceiptEvidence) {
-    this.#spike.reconcilePayout(id, this.#matchReceipt(id, 'payout', receipt));
+  async reconcilePayout(id: string) {
+    let verified;
+    try { verified = await this.#verify(id, 'payout'); }
+    finally { this.#spike.reconcilePayout(id, verified ?? null); }
   }
 
-  #matchReceipt(id: string, action: 'swap' | 'payout', receipt?: ReceiptEvidence) {
+  async #verify(id: string, action: 'swap' | 'payout') {
     const attempt = this.attempt(JSON.stringify([action, id]));
     check(attempt, 'missing durable wallet intent');
-    if (!receipt) return null;
-    check(isHash(receipt.hash) && (!attempt.hash || attempt.hash === receipt.hash.toLowerCase()),
-      'receipt hash does not match wallet intent');
-    return receipt;
+    // The hash must already be tied to this exact wallet prompt. Provider/API hints are insufficient.
+    if (!isHash(attempt.hash)) return;
+    const r = this.#spike.read(id);
+    const invoice = r.commitment.invoice;
+    const tx = action === 'swap' ? r.swap : r.payout;
+    check(tx && invoice.taker === this.#sender, 'persisted transaction mismatch');
+    const bounds = JSON.parse(attempt.request);
+    return this.#reader.verifySettlement({
+      action, hash: attempt.hash, sender: this.#sender,
+      recipient: action === 'swap' ? this.#sender : invoice.recipient,
+      buyToken: invoice.buy, sellToken: invoice.sell, amount: atomic(invoice.buyAmount),
+      debit: action === 'swap' ? atomic(r.quote!.takerPays) : 0n, tx, bounds,
+    });
   }
 }
