@@ -191,3 +191,57 @@ test('focused controls are never hidden behind the sticky bars at 375 px', async
     assert.equal(hidden, false, 'focused element obscured at tab stop ' + n);
   }
 });
+
+test('P09D.1 financial copy: face value vs settlement asset, quote expiry, gated new attempts', async t => {
+  const page = await browser.newPage({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce' });
+  t.after(() => page.close());
+  await page.addInitScript(spy);
+  await page.goto(base + '/?invoice=INV-0042');
+  await page.locator('h1').waitFor();
+  const review = await page.evaluate(() => document.body.innerText);
+  assert(!/Pegged/i.test(review), 'peg wording still present');
+  assert.match(review, /Invoice face value ₦150,000, settled as exactly this amount of cNGN/);
+  assert.match(review, /Not a naira bank payment/);
+  assert(!/\bHolds\b|holds \d/i.test(review), '"holds" wording still present');
+  assert.match(review, /Quote expires in \d:\d\d/);
+  await page.goto(base + '/?demo=checked');
+  await page.locator('h1').waitFor();
+  const checked = await page.evaluate(() => document.body.innerText);
+  assert(!/retry is (now )?safe/i.test(checked), 'absolute retry wording still present');
+  assert.match(checked, /authoritative reconciliation, fresh preflight checks and your approval/);
+  await page.getByRole('button', { name: 'Review a new payout attempt' }).click();
+  await page.getByRole('dialog').getByText('Required before a new payment attempt').waitFor();
+  for (const key of ['unknown', 'mismatch', 'conversion-submitted', 'payout-submitted']) {
+    await page.goto(base + '/?demo=' + key);
+    await page.locator('h1').waitFor();
+    assert.equal(await page.getByRole('button', { name: /retry|payout attempt|review payout/i }).count(), 0, key + ': retry offered');
+  }
+  assert.deepEqual(await page.evaluate(() => window.walletCalls), []);
+});
+
+test('P09D.1 layout: reconciliation readable at 320/375, gauge labels inside, desktop bar never covers costs', async t => {
+  for (const width of [320, 375]) {
+    const page = await browser.newPage({ viewport: { width, height: 812 }, reducedMotion: 'reduce' });
+    await page.goto(base + '/?invoice=INV-0032&view=progress');
+    await page.locator('.recon').waitFor();
+    const diff = await page.locator('tr.difference th').evaluate(el => ({ lines: Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight || '24')), text: el.innerText }));
+    assert.equal(diff.lines <= 1, true, 'Difference label wraps at ' + width);
+    for (const label of ['Invoice', 'Found (demo)']) assert(await page.locator('.recon td[data-label="' + label + '"]').count() > 0);
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.close();
+  }
+  for (const width of [320, 375, 768, 1440]) {
+    const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
+    await page.goto(base + '/?invoice=INV-0042');
+    await page.locator('.gauge-tick.last').waitFor();
+    const inside = await page.evaluate(() => { const g = document.querySelector('.gauge').getBoundingClientRect();
+      return [...document.querySelectorAll('.gauge-tick span')].every(s => { const r = s.getBoundingClientRect(); return r.left >= g.left - 0.5 && r.right <= g.right + 0.5 && r.height < 24; }); });
+    assert(inside, 'tick label clipped or wrapped at ' + width);
+    if (width === 1440) {
+      const overlap = await page.evaluate(() => { const bar = document.querySelector('.action-bar').getBoundingClientRect();
+        return [...document.querySelectorAll('.cost tr, .stage-open')].some(el => { const r = el.getBoundingClientRect(); return r.bottom > bar.top + 1 && r.top < bar.bottom - 1; }); });
+      assert.equal(overlap, false, 'desktop action bar overlaps cost breakdown');
+    }
+    await page.close();
+  }
+});

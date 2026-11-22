@@ -235,7 +235,7 @@ function FocusPane({ invoice, now, onOpen }: { invoice: Invoice; now: number; on
     </div>
     <p className="focus-next"><strong>Next:</strong> {nextAction(invoice, now)}.</p>
     {q && invoice.flow === 'setup' && !q.invalid ? <p className="meta">Quote <TokenAmount value={q.pay} unit="USDt" /> all-in, limit <TokenAmount value={invoice.cap} unit="USDt" />.
-      {qs === 'held' ? <> Holds <span className="tnum">{countdown(q.expires - now)}</span>.</> : qs === 'expired' ? ' Expired.' : ''}</p>
+      {qs === 'held' ? <> Quote expires in <span className="tnum">{countdown(q.expires - now)}</span>.</> : qs === 'expired' ? ' Expired.' : ''}</p>
       : <p className="meta">Limit <TokenAmount value={invoice.cap} unit="USDt" /> all-in.</p>}
     <button type="button" className="btn primary block" onClick={onOpen}>Open invoice</button>
     <dl className="focus-roles">

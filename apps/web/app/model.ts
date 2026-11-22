@@ -23,7 +23,7 @@ export type Flow =
   | 'payout-submitted'      // payout broadcast, not verified
   | 'payout-reverted'       // payout reverted onchain (confirmed)
   | 'uncertain'             // payout outcome unknown: reconciliation required, retry blocked
-  | 'checked'               // checked: payout did not land, retry safe
+  | 'checked'               // checked: no payout found; a new attempt still needs reconciliation, preflight and approval
   | 'verified';             // payout evidence found (settled only if it matches exactly)
 
 export type Invoice = {
@@ -124,7 +124,7 @@ export function nextAction(i: Invoice, now: number) {
     case 'converted': return 'Approve payout to ' + i.recipient;
     case 'payout-declined': return 'You declined the payout. Check status';
     case 'payout-reverted': return 'Payout reverted. Review payout again';
-    case 'checked': return 'Payout did not land. Review payout';
+    case 'checked': return 'No payout found. New attempt needs checks and approval';
     case 'setup': break;
   }
   if (!signaturesValid(i, now)) {

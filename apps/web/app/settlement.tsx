@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
-  currentStage, demoSpender, formatTokenAmount, missingSignatures, parseAtomic, phase, quoteState, settled, signaturesValid,
+  formatNumber, currentStage, demoSpender, formatTokenAmount, missingSignatures, parseAtomic, phase, quoteState, settled, signaturesValid,
   stages, UNIT, type Invoice, type Signed,
 } from './model';
 import { Address, countdown, returnFocus, DemoEvidence, PlumbBob, StatusGlyph, StatusMark, TokenAmount, watDate, watTime, type Mark } from './ui';
@@ -47,7 +47,7 @@ function TargetSlab({ invoice, now, openSignatures }: { invoice: Invoice; now: n
       <h1 id="slab-title" className="slab-sentence">
         {invoice.recipient} receives exactly <span className="nowrap"><TokenAmount value={invoice.target} unit="cNGN" className="display-amount" /></span>
       </h1>
-      <p className="slab-peg">Pegged to ₦{formatTokenAmount(invoice.target, 'cNGN').split(' ')[0]}. {invoice.id}.</p>
+      <p className="slab-peg">Invoice face value ₦{formatNumber(invoice.target, 'cNGN')}, settled as exactly this amount of cNGN to the recipient’s wallet. Not a naira bank payment. {invoice.id}.</p>
       <button type="button" className={'slab-link' + (valid ? '' : ' warn')} onClick={openSignatures}>
         {valid ? 'Invoice signed by approver and recipient (demo)' : missing.join('; ') + ' (demo)'}<span aria-hidden="true"> ›</span>
       </button>
@@ -118,6 +118,12 @@ function ReviewDialog({ invoice, kind, onClose, onConfirm, blocked }: { invoice:
             <tr><th scope="row">Network fee</th><td>About <span className="mono">0.004 CELO</span> (simulated), outside the USDt limit</td></tr>
           </tbody>
         </table>
+        {kind === 'payout' && (invoice.flow === 'checked' || invoice.flow === 'payout-reverted') ? <div className="preflight">
+          <p className="label">Required before a new payment attempt</p>
+          <ul><li>Authoritative reconciliation confirms the earlier payout did not land (simulated in demo)</li>
+            <li>Fresh preflight: taker-wallet balance, recipient address and network state re-checked (simulated in demo)</li>
+            <li>Your explicit approval of this new attempt</li></ul>
+        </div> : null}
         {blocked ? <p className="field-error" role="alert">{blocked}</p> : null}
         <div className="dialog-foot">
           <Dialog.Close className="btn secondary">Cancel</Dialog.Close>
@@ -153,7 +159,7 @@ export function PlumbLine({ invoice, now, requesting }: { invoice: Invoice; now:
       : state === 'invalid' ? 'Daidai rejected this quote: it didn’t match the invoice.'
         : state === 'over' && q ? 'Needs ' + formatTokenAmount(q.pay, 'USDt') + ', over your ' + formatTokenAmount(invoice.cap, 'USDt') + ' limit. Daidai won’t continue.'
           : state === 'expired' && q ? 'Expired at ' + watTime.format(q.expires) + ' WAT. No USDt was spent on it.'
-            : 'Within your limit. Holds ' + countdown(left) + '.';
+            : 'Within your limit. Quote expires in ' + countdown(left) + '.';
   const urgent = state === 'held' && left <= 15_000;
   return <div className={'gauge gauge-' + state}>
     <div className="gauge-head" aria-hidden="true">
@@ -162,7 +168,7 @@ export function PlumbLine({ invoice, now, requesting }: { invoice: Invoice; now:
     </div>
     <div className="gauge-field" aria-hidden="true">
       <div className="gauge-track" />
-      {ticks.map(t => <span key={t} className="gauge-tick" style={{ left: at(t) + '%' }}><span>{t}</span></span>)}
+      {ticks.map((t, n) => <span key={t} className={'gauge-tick' + (n === 0 ? ' first' : n === ticks.length - 1 ? ' last' : '')} style={{ left: at(t) + '%' }}><span>{t}</span></span>)}
       <div className="gauge-hatch" style={{ left: at(limit) + '%' }} />
       <div className="gauge-stop" style={{ left: at(limit) + '%' }} />
       {state === 'requesting' ? <div className="gauge-crawl" /> : null}
@@ -172,7 +178,7 @@ export function PlumbLine({ invoice, now, requesting }: { invoice: Invoice; now:
       <span>USDt, from {lo}</span>
       {showNeedle && state !== 'over' ? <span>{formatTokenAmount(headroom, 'USDt')} headroom</span> : null}
     </div>
-    <p className={'gauge-text' + (urgent ? ' urgent' : '') + (state === 'over' ? ' over' : '')}>{state === 'held' ? <>Within your limit. Holds <span className="tnum">{countdown(left)}</span>.</> : text}</p>
+    <p className={'gauge-text' + (urgent ? ' urgent' : '') + (state === 'over' ? ' over' : '')}>{state === 'held' ? <>Within your limit. Quote expires in <span className="tnum">{countdown(left)}</span>.</> : text}</p>
     <dl className="sr-only">
       <dt>All-in quote</dt><dd>{q && !q.invalid ? formatTokenAmount(q.pay, 'USDt') : 'No quote'}</dd>
       <dt>Your limit</dt><dd>{formatTokenAmount(invoice.cap, 'USDt')}</dd>
@@ -309,7 +315,7 @@ export function Detail({ invoice, now, update, go, announce }: Props) {
     const heading = requesting ? 'Requesting a firm quote… (demo)' : qs === 'held' ? 'Quote within your limit (demo)' : qs === 'expired' ? 'This quote expired (demo)'
       : qs === 'over' ? 'Quote is over your limit (demo)' : qs === 'invalid' ? 'Daidai rejected this quote (demo)' : 'No quote available now (demo)';
     const line = requesting ? 'Daidai is asking for an exact-output quote for ' + formatTokenAmount(invoice.target, 'cNGN') + '.'
-      : qs === 'held' && q ? formatTokenAmount(q.pay, 'USDt') + ' all-in for exactly ' + formatTokenAmount(invoice.target, 'cNGN') + '. An offer, not a payment.'
+      : qs === 'held' && q ? formatTokenAmount(q.pay, 'USDt') + ' all-in for exactly ' + formatTokenAmount(invoice.target, 'cNGN') + '. An offer, not a payment: nothing is reserved, and it can still fail or change at execution.'
         : qs === 'expired' && q ? 'It ended at ' + watTime.format(q.expires) + ' WAT. No USDt was spent on it.'
           : qs === 'over' && q ? 'It needs ' + formatTokenAmount(q.pay, 'USDt') + '; your limit is ' + formatTokenAmount(invoice.cap, 'USDt') + '.'
             : qs === 'invalid' ? 'It didn’t match the invoice, so it can’t be used. No USDt was spent.'
@@ -324,7 +330,7 @@ export function Detail({ invoice, now, update, go, announce }: Props) {
     bar = requesting
       ? <ActionBar status="Requesting a firm quote…"><button className="btn primary" disabled><span className="spinner" aria-hidden="true" /> Requesting quote…</button></ActionBar>
       : qs === 'held' && q
-        ? <ActionBar status={<span className={left <= 15_000 ? 'urgent' : ''}>Quote holds <span className="tnum">{countdown(left)}</span></span>}>
+        ? <ActionBar status={<span className={left <= 15_000 ? 'urgent' : ''}>Quote expires in <span className="tnum">{countdown(left)}</span></span>}>
           <button className="btn primary" onClick={() => setReview('conversion')}>Review conversion: <TokenAmount value={q.pay} unit="USDt" /></button></ActionBar>
         : qs === 'over'
           ? <ActionBar status="Over your limit"><button className="btn primary" onClick={openLimit}>Edit limit</button></ActionBar>
@@ -368,6 +374,7 @@ export function Detail({ invoice, now, update, go, announce }: Props) {
     <div className="review-grid">
       <div className="decision">
         {open}
+        {bar}
         <CostBreakdown invoice={invoice} />
       </div>
       <div className="facts">
@@ -375,7 +382,6 @@ export function Detail({ invoice, now, update, go, announce }: Props) {
         <People invoice={invoice} />
       </div>
     </div>
-    {bar}
     <SignatureSheet invoice={invoice} now={now} open={sigOpen} onOpenChange={setSigOpen} />
     <ReviewDialog invoice={invoice} kind={review} onClose={() => setReview(null)} onConfirm={confirm} blocked={blocked} />
   </div>;
@@ -398,7 +404,7 @@ function verdict(i: Invoice): Verdict {
     case 'payout-declined': return { tone: 'paper', mark: 'waiting', headline: 'You declined in your wallet (demo)', line: 'Daidai didn’t receive a transaction hash. If a transaction was broadcast anyway, it will appear in the check.' };
     case 'payout-submitted': return { tone: 'ink', mark: 'submitted', headline: 'Payout submitted, waiting for confirmation… (demo)', line: 'Don’t start another payment for this invoice. ' + i.recipient + ' is not marked paid until the payout is verified.' };
     case 'payout-reverted': return { tone: 'error', mark: 'failed', alert: true, headline: 'The payout didn’t complete (demo)', line: 'It reverted onchain. ' + t + ' is still in the Daidai taker wallet. The network fee was used.' };
-    case 'checked': return { tone: 'paper', mark: 'confirmed', headline: 'Checked: the payout did not land (demo)', line: t + ' is still in the Daidai taker wallet. A retry is now safe.' };
+    case 'checked': return { tone: 'paper', mark: 'confirmed', headline: 'Checked: no payout found (demo)', line: 'The demo check found no payout, and ' + t + ' appears to still be in the Daidai taker wallet. A new payment attempt needs authoritative reconciliation, fresh preflight checks and your approval first. Daidai never retries automatically.' };
     default: return { tone: 'ink', mark: 'waiting', headline: 'Not started (demo)', line: 'Conversion hasn’t been approved yet.' };
   }
 }
@@ -431,13 +437,13 @@ function Recon({ invoice }: { invoice: Invoice }) {
     <table className="ledger">
       <thead><tr><th scope="col">Check</th><th scope="col">Invoice</th><th scope="col">Found (demo)</th></tr></thead>
       <tbody>
-        <tr><th scope="row">Recipient</th><td>{invoice.recipient}<br /><span className="mono small" translate="no">{invoice.wallet.slice(0, 6)}…{invoice.wallet.slice(-4)}</span></td>
-          <td>{!checked ? notYet : recipientOk ? <span className="match"><StatusGlyph mark="settled" /> matches (demo)</span> : <span className="mismatch"><StatusGlyph mark="recon" /> different address</span>}</td></tr>
-        <tr><th scope="row">Amount</th><td><TokenAmount value={invoice.target} unit="cNGN" tabular /></td>
-          <td>{!e ? notYet : <><TokenAmount value={e.amount} unit="cNGN" tabular /> {diff === 0n ? <span className="match"><StatusGlyph mark="settled" /> matches (demo)</span> : <span className="mismatch"><StatusGlyph mark="recon" /> differs</span>}</>}</td></tr>
-        <tr><th scope="row">Payout</th><td>One exact cNGN transfer</td>
-          <td>{isSettled ? <span className="mono small">demo-tx-{num(invoice.id)}-pay</span> : e ? <span className="mono small">demo-tx-{num(invoice.id)}-pay</span> : notYet}</td></tr>
-        <tr className="difference"><th scope="row">Difference</th><td></td><td>{diff === undefined ? <span className="muted">Unknown</span> : <TokenAmount value={diff} unit="cNGN" tabular minFraction={2} />}</td></tr>
+        <tr><th scope="row">Recipient</th><td data-label="Invoice">{invoice.recipient}<br /><span className="mono small" translate="no">{invoice.wallet.slice(0, 6)}…{invoice.wallet.slice(-4)}</span></td>
+          <td data-label="Found (demo)">{!checked ? notYet : recipientOk ? <span className="match"><StatusGlyph mark="settled" /> matches (demo)</span> : <span className="mismatch"><StatusGlyph mark="recon" /> different address</span>}</td></tr>
+        <tr><th scope="row">Amount</th><td data-label="Invoice"><TokenAmount value={invoice.target} unit="cNGN" tabular /></td>
+          <td data-label="Found (demo)">{!e ? notYet : <><TokenAmount value={e.amount} unit="cNGN" tabular /> {diff === 0n ? <span className="match"><StatusGlyph mark="settled" /> matches (demo)</span> : <span className="mismatch"><StatusGlyph mark="recon" /> differs</span>}</>}</td></tr>
+        <tr><th scope="row">Payout</th><td data-label="Invoice">One exact cNGN transfer</td>
+          <td data-label="Found (demo)">{isSettled ? <span className="mono small">demo-tx-{num(invoice.id)}-pay</span> : e ? <span className="mono small">demo-tx-{num(invoice.id)}-pay</span> : notYet}</td></tr>
+        <tr className="difference"><th scope="row">Difference</th><td className="diff-gap" aria-hidden="true"></td><td data-label="Outcome">{diff === undefined ? <span className="muted">Unknown</span> : <TokenAmount value={diff} unit="cNGN" tabular minFraction={2} />}</td></tr>
       </tbody>
     </table>
   </section>;
@@ -497,7 +503,7 @@ function Timeline({ invoice, open }: { invoice: Invoice; open: boolean }) {
     { title: 'Send', steps: [
       { title: 'Payout to ' + invoice.recipient, mark: done ? 'confirmed' : f === 'payout-reverted' ? 'failed' : f === 'uncertain' ? 'recon' : payoutSent ? 'submitted' : f === 'converted' || f === 'checked' || f === 'payout-declined' ? 'needs-you' : 'waiting',
         detail: done ? 'Confirmed' : f === 'payout-reverted' ? 'Reverted onchain' : f === 'uncertain' ? 'Outcome unknown' : f === 'verified' ? 'Found, amount differs' : f === 'payout-submitted' ? 'Submitted, waiting for confirmation'
-          : f === 'payout-declined' ? 'Declined in wallet' : f === 'checked' ? 'Checked: did not land' : f === 'converted' ? 'Needs your approval' : 'Waiting for the conversion',
+          : f === 'payout-declined' ? 'Declined in wallet' : f === 'checked' ? 'Checked: no payout found' : f === 'converted' ? 'Needs your approval' : 'Waiting for the conversion',
         at: payoutSent ? base + 600_000 : undefined, tx: payoutSent ? 'pay' : undefined },
     ] },
     { title: 'Check', steps: [
@@ -557,9 +563,9 @@ export function Progress({ invoice, update, go, announce }: Props) {
 
   const bar = isSettled
     ? <ActionBar status="Receipt (demo)"><button className="btn secondary" onClick={() => window.print()}>Save PDF</button><button className="btn primary" onClick={share}>Share receipt</button></ActionBar>
-    : f === 'converted' || f === 'checked' ? <ActionBar status={f === 'checked' ? 'Retry is safe' : invoice.recipient + ' not paid yet'}><button className="btn primary" onClick={() => setReview('payout')}>Review payout</button></ActionBar>
+    : f === 'converted' || f === 'checked' ? <ActionBar status={f === 'checked' ? 'New attempt needs checks and approval' : invoice.recipient + ' not paid yet'}><button className="btn primary" onClick={() => setReview('payout')}>{f === 'checked' ? 'Review a new payout attempt' : 'Review payout'}</button></ActionBar>
       : f === 'payout-reverted' ? <ActionBar status="Revert confirmed"><button className="btn primary" onClick={() => setReview('payout')}>Review payout again</button></ActionBar>
-        : f === 'payout-declined' ? <ActionBar status="No transaction hash"><button className="btn primary" onClick={() => { update({ ...invoice, flow: 'checked' }); announce('Checked (demo): the payout did not land.'); }}>Check status</button></ActionBar>
+        : f === 'payout-declined' ? <ActionBar status="No transaction hash"><button className="btn primary" onClick={() => { update({ ...invoice, flow: 'checked' }); announce('Checked (demo): no payout found. A new attempt needs reconciliation, preflight and approval.'); }}>Check status</button></ActionBar>
           : recon ? <ActionBar status="Retry blocked to avoid paying twice"><button className="btn primary" onClick={showEvidence}>View evidence</button></ActionBar>
             : f === 'setup' ? <ActionBar status="Not started"><button className="btn primary" onClick={() => go(invoice.id, 'detail')}>Open invoice review</button></ActionBar>
               : <ActionBar status="Daidai is watching for confirmation" />;

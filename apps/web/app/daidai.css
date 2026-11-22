@@ -300,8 +300,8 @@ button:disabled { cursor: not-allowed; }
 @media (min-width: 1024px) {
   .review-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; }
   .facts { grid-column: 1 / span 5; grid-row: 1; }
-  .decision { grid-column: 6 / span 7; grid-row: 1; position: sticky; top: 24px; }
-  .review .action-bar, .receipt .action-bar { margin-left: calc((100% + 24px) * 5 / 12); }
+  /* Not sticky: a sticky column under the sticky action bar would pin the cost breakdown behind it. */
+  .decision { grid-column: 6 / span 7; grid-row: 1; }
 }
 .stage-open { gap: 12px; position: relative; }
 .missing { display: grid; gap: 4px; font-size: .875rem; padding-left: 0; }
@@ -528,3 +528,39 @@ button:disabled { cursor: not-allowed; }
 .gauge-tick:last-child span { left: auto; right: 0; transform: none; }
 .gauge-head, .gauge-foot { flex-wrap: wrap; }
 .gauge-foot > :last-child:not(:first-child) { margin-left: auto; }
+
+/* Reconciliation on phones: each check becomes a block with labelled Invoice and Found (demo) lines,
+   and Difference becomes a full-width outcome row. No columns to squeeze, nothing hidden, no sideways scroll. */
+.ledger th { hyphens: none; overflow-wrap: normal; word-break: normal; }
+@media (max-width: 480px) {
+  .ledger thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ledger, .ledger tbody, .ledger tr, .ledger th, .ledger td { display: block; }
+  .ledger tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 12px; padding: 12px 0; }
+  .ledger tbody th { grid-column: 1 / -1; padding: 0 0 2px; font-weight: 600; font-size: .9375rem; }
+  .ledger td { padding: 0; min-width: 0; }
+  .ledger td::before { content: attr(data-label); display: block; color: var(--color-ink-muted); font-size: .75rem; line-height: 1rem; margin-bottom: 2px; }
+  .ledger td.diff-gap { display: none; }
+  .ledger tr.difference { grid-template-columns: 1fr auto; align-items: baseline; padding-top: 14px; }
+  .ledger tr.difference th { grid-column: 1; padding: 0; }
+  .ledger tr.difference td::before { content: none; }
+  .ledger tr.difference th, .ledger tr.difference td { font-size: 1.0625rem; }
+  .ledger .match, .ledger .mismatch { display: flex; margin-top: 2px; }
+}
+.ledger td[data-label] { overflow-wrap: anywhere; }
+.preflight { padding: 12px 14px; border: 1px solid var(--color-rule); border-radius: var(--radius-control); background: var(--color-well); display: grid; gap: 6px; }
+.preflight ul { display: grid; gap: 4px; font-size: .875rem; list-style: disc; padding-left: 18px; }
+
+.gauge-tick.first span { left: 0; transform: none; }
+.gauge-tick.last span { left: auto; right: 0; transform: none; }
+/* Invoice review: the action bar lives in the decision column.
+   Below 1024 px the column dissolves (display: contents) so the bar is the grid's last item and stays
+   sticky to the viewport bottom across the whole page. At 1024 px and up it is an ordinary block directly
+   under the quote panel, so it can never cover the cost breakdown or a focused control. */
+@media (max-width: 1023px) {
+  .review .decision { display: contents; }
+  .review .review-grid > .action-bar { order: 1; }
+}
+@media (min-width: 1024px) {
+  .review .action-bar { position: static; margin: 0; box-shadow: none; border-radius: var(--radius-panel); min-height: 0; }
+}
+.gauge-tick.last { margin-left: -1px; }
