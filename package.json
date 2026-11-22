@@ -4,12 +4,18 @@
   "type": "module",
   "scripts": {
     "test": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/*.test.ts",
-    "typecheck": "tsc --noEmit --strict --target es2022 --module nodenext --allowImportingTsExtensions test/invoice.test.ts test/wallet.test.ts test/security.test.ts test/integration.test.ts"
+    "typecheck": "tsc --noEmit --strict --target es2022 --module nodenext --allowImportingTsExtensions test/invoice.test.ts test/wallet.test.ts test/security.test.ts test/integration.test.ts src/address-host.ts",
+    "test:browser": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/address-browser.test.mjs",
+    "probe:celo": "node --experimental-strip-types scripts/probe-celo.mjs",
+    "address:preflight": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/address-preflight.mjs"
   },
   "dependencies": {
     "@celo/attribution-tags": "0.5.0",
     "@types/node": "22.20.5",
     "typescript": "5.9.3",
     "viem": "2.45.0"
+  },
+  "devDependencies": {
+    "playwright-core": "1.65.1"
   }
 }

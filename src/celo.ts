@@ -21,7 +21,7 @@ function quantity(value: unknown) {
   return BigInt(value);
 }
 
-function movements(logs: Log[], plan: Pick<Settlement, 'sender' | 'recipient' | 'buyToken' | 'sellToken' | 'action'>) {
+export function accountTransferLogs(logs: Log[], plan: Pick<Settlement, 'sender' | 'recipient' | 'buyToken' | 'sellToken' | 'action'>) {
   let debit = 0n;
   let received = 0n;
   let unexpected = false;
@@ -82,7 +82,7 @@ export class CeloReader {
         typeof log.logIndex !== 'string' || indices.has(log.logIndex)) return;
       indices.add(log.logIndex);
     }
-    const { debit, received, unexpected } = movements(receipt.logs, plan);
+    const { debit, received, unexpected } = accountTransferLogs(receipt.logs, plan);
     if (unexpected || debit !== plan.debit || received !== plan.amount) return;
     const result = Object.freeze({ hash: plan.hash, receipt: Object.freeze({
       ok: true, finalized: true, chain: 42220, from: plan.sender, to: plan.recipient,
@@ -119,7 +119,7 @@ export class CeloReader {
       }, 'latest']) as { calls: { status: Hex; logs: Log[] }[] }[];
       const simulated = simulation[0]?.calls?.[0];
       if (simulation.length !== 1 || simulation[0]?.calls.length !== 1 || simulated?.status !== '0x1') throw Error('swap simulation unavailable');
-      const result = movements(simulated.logs, swap);
+      const result = accountTransferLogs(simulated.logs, swap);
       if (result.unexpected || result.debit !== swap.debit || result.received !== swap.amount) throw Error('swap simulation mismatch');
     }
     const nonce = toHex(quantity(await this.#rpc('eth_getTransactionCount', [call.from, 'pending'])));
