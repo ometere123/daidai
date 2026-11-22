@@ -1,5 +1,7 @@
+import { proveTextileTaker } from './taker-proof.ts';
+import { proofWindowMs, type TakerChallenge } from './taker-schema.ts';
 import { type CeloReader, type FeeCeilings } from './celo.ts';
-import { verifyAuthorization, type SignedAuthorization } from './authorization.ts';
+import { authorizationPacket, verifyAuthorization, type SignedAuthorization } from './authorization.ts';
 import { encodeFunctionData, erc20Abi, parseAbi, type Hex } from 'viem';
 import {
   address, atomic, chain, check, reactor, registry, tag, verifyTag,
@@ -81,6 +83,12 @@ export class WalletAdapter {
     return r;
   }
 
+  prepareAuthorization(id: string, role: 'invoice approval' | 'recipient consent') {
+    const r = this.#invoice(id);
+    check(r.state === 'draft', 'invoice cannot collect authorization');
+    return authorizationPacket(r.commitment.invoice, r.commitment.digest, role, this.#origin);
+  }
+
   async authorizeInvoice(id: string, proof: SignedAuthorization) {
     const { invoice, digest } = this.#invoice(id).commitment;
     const verified = await verifyAuthorization(invoice, digest, this.#origin, proof, this.#clock());
@@ -92,6 +100,18 @@ export class WalletAdapter {
     const r = this.#invoice(id);
     check(r.state === 'authorized' || r.state === 'quote_pending', 'invoice cannot request a quote');
     return exactOutRequest(r.commitment.invoice);
+  }
+
+  async prepareKeylessRfq(id: string, reason: 'proof_of_control_required',
+    signTaker: (challenge: TakerChallenge, expires: number) => Promise<unknown>) {
+    check(reason === 'proof_of_control_required', 'unexpected Textile authentication response');
+    const request = await this.prepareRfq(id);
+    const revision = this.#invoice(id).revision;
+    const takerProof = await proveTextileTaker(this.#sender, signTaker, this.#clock);
+    await this.checkWallet();
+    check(this.#invoice(id).revision === revision, 'invoice changed during Textile proof');
+    check(this.#clock() - takerProof.issuedAt < proofWindowMs, 'stale Textile proof after wallet check');
+    return Object.freeze({ ...request, takerProof });
   }
 
   acceptQuote(id: string, body: unknown, funds: Funds) {
@@ -170,7 +190,7 @@ export class WalletAdapter {
   #checkIntent(intent: Intent) {
     const { prepared, raw, id, revision } = intent;
     const { request, action, expires } = prepared;
-    check(this.#clock() + (action === 'swap' ? 5_000 : 0) < expires, 'expired or insufficient quote headroom');
+    check(this.#clock() + (action === 'swap' ? 20_000 : 0) < expires, 'expired or insufficient quote headroom');
     check(request.from === this.#sender && request.chainId === '0xa4ec' && request.value === '0x0' &&
       request.to === raw.to && request.data === tag(raw.data, this.#spike.code), 'wallet request changed');
     verifyTag(request.data, this.#spike.code);
@@ -231,7 +251,7 @@ export class WalletAdapter {
         timer = setTimeout(() => reject(Error('wallet response timeout')), this.#timeoutMs);
       });
       const result = await Promise.race([timeout,
-        this.#provider.request({ method: 'eth_sendTransaction', params: [request] }, Date.now() + Math.min(this.#timeoutMs, prepared.expires - this.#clock()))]);
+        this.#provider.request({ method: 'eth_sendTransaction', params: [request] }, Date.now() + Math.min(this.#timeoutMs, prepared.expires - this.#clock() - (prepared.action === 'swap' ? 5_000 : 0)))]);
       check(isHash(result), 'wallet response has no transaction hash');
       update.run('hash_returned', result.toLowerCase(), key);
       return { status: 'hash_returned' as const, hash: result };

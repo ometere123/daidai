@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { type Hex } from 'viem';
-import { authorizationMessage, verifyAuthorization } from '../src/authorization.ts';
+import { authorizationMessage, authorizationPacket, verifyAuthorization } from '../src/authorization.ts';
 import { browserWallet, type InjectedProvider } from '../src/browser-wallet.ts';
 import { walletBoundary } from '../src/wallet-boundary.ts';
 import { type Settlement } from '../src/celo.ts';
@@ -30,6 +30,12 @@ test('signed approval and separately signed consent bind invoice digest, role, a
     maxSell: '1200000', recipient: payee.address, approver: payer.address, taker: sender, expires: now + 60_000,
   });
   const { invoice, digest } = commitment;
+  const approvalPacket = authorizationPacket(invoice, digest, 'invoice approval', origin);
+  const consentPacket = authorizationPacket(invoice, digest, 'recipient consent', origin);
+  assert.equal(approvalPacket.signer, invoice.approver);
+  assert.equal(consentPacket.signer, invoice.recipient);
+  assert.equal(JSON.parse(consentPacket.typedData).message.purpose, 'recipient consent');
+  assert.equal(JSON.parse(approvalPacket.typedData).message.invoiceDigest, '0x' + digest);
   const approval = await payer.signTypedData(authorizationMessage(invoice, digest, 'invoice approval', origin));
   const consent = await payee.signTypedData(authorizationMessage(invoice, digest, 'recipient consent', origin));
   const spike = new Spike(':memory:', undefined, 'celo_daidai_fixture');

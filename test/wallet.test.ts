@@ -267,3 +267,13 @@ test('a caller-supplied receipt object cannot promote an invoice', async t => {
   f.spike.reconcileSwap(invoice.id, 'filled', forged);
   assert.equal(f.spike.read(invoice.id).state, 'needs_reconciliation');
 });
+
+test('a valid mock quote with only 19 seconds remaining never opens a wallet prompt', async t => {
+  const f = setup(t);
+  f.quote();
+  const prepared = f.adapter.prepareSwap(invoice.id, funds);
+  f.clock(now + 26_000);
+  await assert.rejects(f.adapter.submit(prepared), /headroom/);
+  assert.equal(f.provider.sends().length, 0);
+  assert.equal(f.spike.read(invoice.id).state, 'quoted');
+});

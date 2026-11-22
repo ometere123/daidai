@@ -31,3 +31,17 @@ export async function verifyAuthorization(invoice: Invoice, digest: string, orig
   certificates.add(result);
   return result;
 }
+
+/** Create one review packet per role for independent, manual delivery and return of only the signature. */
+export function authorizationPacket(invoice: Invoice, digest: string, role: Role, origin: string) {
+  if ((role !== 'invoice approval' && role !== 'recipient consent') || !/^[a-f0-9]{64}$/.test(digest) || new URL(origin).origin !== origin) throw Error('invalid authorization packet');
+  const message = authorizationMessage(invoice, digest, role, origin);
+  return Object.freeze({
+    signer: role === 'invoice approval' ? invoice.approver : invoice.recipient,
+    invoice: Object.freeze({ ...invoice }),
+    typedData: JSON.stringify({ ...message, types: { EIP712Domain: [
+      { name: 'name', type: 'string' }, { name: 'version', type: 'string' }, { name: 'chainId', type: 'uint256' },
+    ], ...message.types } },
+      (_, value) => typeof value === 'bigint' ? value.toString() : value),
+  });
+}

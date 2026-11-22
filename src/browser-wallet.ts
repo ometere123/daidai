@@ -1,3 +1,4 @@
+import { checkTakerChallenge, takerWalletRequest, type TakerChallenge } from './taker-schema.ts';
 export type RpcRequest = { method: string; params?: unknown[] };
 export interface InjectedProvider {
   request(args: RpcRequest): Promise<unknown>;
@@ -5,7 +6,7 @@ export interface InjectedProvider {
   removeListener(event: string, listener: () => void): unknown;
 }
 
-export type WalletJob = { id: string; expires: number; request: RpcRequest };
+export type WalletJob = { id: string; expires: number; request: RpcRequest; challenge?: TakerChallenge };
 
 function assertScope(request: RpcRequest, sender: string) {
   if (request.method === 'eth_accounts' || request.method === 'eth_chainId') {
@@ -20,10 +21,11 @@ function assertScope(request: RpcRequest, sender: string) {
 // Invoke from the browser only. Review must present the exact job and obtain explicit human assent.
 export function browserWallet(options: {
   provider: InjectedProvider; sender: string; token: string; endpoint: string;
-  review: (job: Readonly<WalletJob>) => Promise<boolean>; transport?: typeof fetch;
+  review: (job: Readonly<WalletJob>) => Promise<boolean>; transport?: typeof fetch; clock?: () => number;
 }) {
   const { provider, sender, token, endpoint, review } = options;
   const transport = options.transport ?? fetch;
+  const clock = options.clock ?? Date.now;
   let invalid = false;
   let busy = false;
   const invalidate = () => { invalid = true; };
@@ -45,19 +47,24 @@ export function browserWallet(options: {
       const job = await exchange({ action: 'poll' }) as WalletJob | null;
       if (!job) return;
       try {
-        assertScope(job.request, sender);
-        if (job.request.method === 'eth_sendTransaction') {
+        if (job.challenge) {
+          checkTakerChallenge(job.challenge, sender, clock());
+          const expected = takerWalletRequest(job.challenge);
+          if (JSON.stringify(job.request) !== JSON.stringify(expected)) throw Error('unexpected Textile payload');
+        } else assertScope(job.request, sender);
+        if (job.challenge || job.request.method === 'eth_sendTransaction') {
           // Pass a separate copy to review so it cannot edit the request being approved.
-          if (invalid || Date.now() >= job.expires || !(await review(structuredClone(job)))) {
+          if (invalid || clock() >= job.expires || !(await review(structuredClone(job)))) {
             await exchange({ action: 'complete', id: job.id, error: 4001 });
             return;
           }
           const accounts = await provider.request({ method: 'eth_accounts' });
           const chain = await provider.request({ method: 'eth_chainId' });
-          if (invalid || Date.now() >= job.expires || !Array.isArray(accounts) ||
+          if (invalid || clock() >= job.expires || !Array.isArray(accounts) ||
             accounts[0]?.toLowerCase() !== sender || chain !== '0xa4ec') throw Error('wallet context changed');
         }
-        if (invalid || Date.now() >= job.expires) throw Error('wallet job expired or invalidated');
+        if (invalid || clock() >= job.expires) throw Error('wallet job expired or invalidated');
+        if (job.challenge) checkTakerChallenge(job.challenge, sender, clock());
         const result = await provider.request(job.request);
         await exchange({ action: 'complete', id: job.id, result });
       } catch (error) {
