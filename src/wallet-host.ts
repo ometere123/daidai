@@ -27,7 +27,7 @@ document.querySelector('#start').addEventListener('click', async () => {
   try {
     document.querySelector('#start').disabled = true;
     const provider = reviewed || !window.ethereum ? detected.pick(window.ethereum) : window.ethereum;
-    const {token,sender} = await bootstrapWallet(fragment);
+    const {token,sender} = await bootstrapWallet(fragment());
     if (typeof token !== 'string' || typeof sender !== 'string') throw Error('unexpected bootstrap response');
     const wallet = browserWallet({provider,token,sender,endpoint:'/wallet',
       registration:reviewed?.transaction, review:job=>Promise.resolve(!cancelled && confirm('Review the exact local wallet job:\\n'+JSON.stringify(job,null,2)))});

@@ -25,6 +25,7 @@ const cases = [
   ['rejected', 'BOOTSTRAP_MALFORMED'],
   ['no-fragment', 'BOOTSTRAP_MISSING'],
   ['reload', 'BOOTSTRAP_MISSING'],
+  ['same-tab', 'PASS'],
   ['rpc-failed', 'PASS'],
   ['rpc-stale', 'PASS'],
   ['exception', 'STARTUP_EXCEPTION'],
@@ -75,22 +76,23 @@ for (const [mode, expected] of cases) {
     const path = ['missing', 'ambiguous', 'another-wallet'].includes(mode) ? false : true;
     let bootstrapRequests = 0;
     page.on('request', request => { if (request.url().endsWith('/bootstrap')) bootstrapRequests++; });
-    await page.goto(mode === 'no-fragment' ? host.origin : host.bootstrapUrl);
+    await page.goto(['same-tab','no-fragment'].includes(mode) ? host.origin : host.bootstrapUrl);
     if (mode === 'reload') {
       await page.waitForFunction(() => location.hash === '');
       await page.reload();
     }
+    if (mode === 'same-tab') await page.goto(host.bootstrapUrl);
     const button = page.getByRole('button', { name: 'Run read-only check' });
     assert.deepEqual(await page.evaluate(() => window.calls), []);
     await button.click();
     await page.waitForFunction(code => document.querySelector('#status').textContent.startsWith(code), expected);
     assert.equal(bootstrapRequests, path ? 1 : 0);
-    if (['success','announced','rpc-failed','rpc-stale'].includes(mode)) {
+    if (['success','same-tab','announced','rpc-failed','rpc-stale'].includes(mode)) {
       const expectedRpc = mode==='rpc-failed' ? 'RPC_FAILED' : mode==='rpc-stale' ? 'RPC_STALE' : 'RPC_PASS';
       await page.waitForFunction(code => document.querySelector('#rpc').textContent.startsWith(code), expectedRpc);
     }
     const methods = await page.evaluate(() => window.calls);
-    if (['success','announced'].includes(mode)) {
+    if (['success','same-tab','announced'].includes(mode)) {
       assert.deepEqual(methods,['eth_chainId','eth_accounts','eth_getBlockByNumber','eth_getBalance','eth_chainId','eth_accounts']);
     } else if (['rpc-failed','rpc-stale'].includes(mode)) {
       assert.deepEqual(methods,['eth_chainId','eth_accounts','eth_getBlockByNumber']);
