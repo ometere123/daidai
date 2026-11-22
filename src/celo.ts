@@ -1,6 +1,6 @@
-import { createPublicClient, http, decodeEventLog, erc20Abi, toHex, type Hex } from 'viem';
+import { createPublicClient, http, decodeEventLog, erc20Abi, parseAbi, toHex, type Hex, type PublicClient, type Transport } from 'viem';
 import { celo } from 'viem/chains';
-import { estimateTotalFee } from 'viem/op-stack';
+import { estimateL1Fee } from 'viem/op-stack';
 import type { Receipt, Tx } from './invoice.ts';
 
 type Rpc = (method: string, params: readonly unknown[]) => Promise<unknown>;
@@ -48,11 +48,11 @@ export function accountTransferLogs(logs: Log[], plan: Pick<Settlement, 'sender'
 
 export class CeloReader {
   readonly #rpc: Rpc;
-  readonly #estimateTotal: (call: ReadCall) => Promise<bigint>;
+  readonly #estimateFees: (call: ReadCall, gas: bigint) => Promise<{ totalWei: bigint; rollupWei: bigint }>;
 
-  constructor(rpc: Rpc, estimateTotal: (call: ReadCall) => Promise<bigint>) {
+  constructor(rpc: Rpc, estimateFees: (call: ReadCall, gas: bigint) => Promise<{ totalWei: bigint; rollupWei: bigint }>) {
     this.#rpc = rpc;
-    this.#estimateTotal = estimateTotal;
+    this.#estimateFees = estimateFees;
   }
 
   async #checkChain() {
@@ -107,8 +107,11 @@ export class CeloReader {
     const estimate = quantity(await this.#rpc('eth_estimateGas', [unsigned]));
     const block = await this.#rpc('eth_getBlockByNumber', ['latest', false]) as { baseFeePerGas: Hex };
     if (estimate === 0n || estimate > limits.gas ||
-      quantity(block.baseFeePerGas) + limits.maxPriorityFeePerGas > limits.maxFeePerGas ||
-      await this.#estimateTotal(call) > limits.totalWei) throw Error('gas or fee ceiling exceeded');
+      quantity(block.baseFeePerGas) + limits.maxPriorityFeePerGas > limits.maxFeePerGas) throw Error('gas or fee ceiling exceeded');
+    const estimated = await this.#estimateFees(call, estimate);
+    if (estimated.totalWei > limits.totalWei || estimated.rollupWei > limits.rollupReserveWei) {
+      throw Error('gas or fee ceiling exceeded');
+    }
     if (quantity(await this.#rpc('eth_getBalance', [call.from, 'latest'])) < limits.totalWei) throw Error('insufficient native gas balance');
     const callResult = await this.#rpc('eth_call', [unsigned, 'latest']);
     if (typeof callResult !== 'string' || !/^0x(?:[0-9a-f]{2})*$/i.test(callResult) ||
@@ -127,11 +130,31 @@ export class CeloReader {
   }
 }
 
+// Verified Celo mainnet OP Stack predeploys. Celo's viem chain definition omits GasPriceOracle.
+export const celoGasPriceOracle = '0x420000000000000000000000000000000000000F';
+export const celoL1Block = '0x4200000000000000000000000000000000000015';
+const operatorAbi = parseAbi([
+  'function operatorFeeScalar() view returns (uint32)',
+  'function operatorFeeConstant() view returns (uint64)',
+]);
+
+export async function estimateCeloFees(client: PublicClient<Transport, typeof celo>, call: ReadCall, gas: bigint) {
+  const [price, l1Fee, scalar, constant] = await Promise.all([
+    client.getGasPrice(),
+    estimateL1Fee(client, { account: call.from as Hex, to: call.to as Hex,
+      data: call.data, value: 0n, gasPriceOracleAddress: celoGasPriceOracle }),
+    client.readContract({ address: celoL1Block, abi: operatorAbi, functionName: 'operatorFeeScalar' }),
+    client.readContract({ address: celoL1Block, abi: operatorAbi, functionName: 'operatorFeeConstant' }),
+  ]);
+  // Celo currently reports zero operator fees. Require review if the chain changes that policy.
+  if (scalar !== 0 || constant !== 0n) throw Error('unsupported Celo operator fee configuration');
+  if (price <= 0n || l1Fee < 0n || gas <= 0n) throw Error('invalid Celo fee estimate');
+  return { totalWei: gas * price + l1Fee, rollupWei: l1Fee };
+}
 // Only trusted server configuration supplies this URL. The browser never supplies receipt fields or RPC endpoints.
 export function celoReader(url: string) {
   if (new URL(url).protocol !== 'https:') throw Error('Celo RPC must use HTTPS');
   const client = createPublicClient({ chain: celo, transport: http(url, { timeout: 10_000, retryCount: 0 }) });
   return new CeloReader((method, params) => client.request({ method, params } as never),
-    call => estimateTotalFee(client, { account: call.from as Hex, to: call.to as Hex,
-      data: call.data, value: 0n }));
+    (call, gas) => estimateCeloFees(client, call, gas));
 }

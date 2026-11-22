@@ -17,7 +17,7 @@ export function transfer(token: string, from: Hex, to: Hex, amount: bigint) {
 export function readFixture(sender: Hex, maker: Hex, amount: bigint, debit: bigint) {
   const transactions = new Map<string, Record<string, unknown>>();
   const receipts = new Map<string, Record<string, unknown>>();
-  const state = { code: '0x', simulatedDebit: debit, gas: '0x5208', finalized: '0x3', blockHash, chain: '0xa4ec', fee: 500_000n };
+  const state = { code: '0x', simulatedDebit: debit, gas: '0x5208', finalized: '0x3', blockHash, chain: '0xa4ec', fee: 500_000n, rollupFee: 0n };
   const calls: string[] = [];
   const tradeLogs = (payment: bigint, buy = amount) => [transfer(usdt, sender, maker, payment), transfer(cngn, maker, sender, buy)];
   const reader = new CeloReader(async (method, params) => {
@@ -36,7 +36,7 @@ export function readFixture(sender: Hex, maker: Hex, amount: bigint, debit: bigi
       case 'eth_simulateV1': return [{ calls: [{ status: '0x1', logs: tradeLogs(state.simulatedDebit) }] }];
       default: throw Error('unexpected RPC method');
     }
-  }, async () => state.fee);
+  }, async () => ({ totalWei: state.fee, rollupWei: state.rollupFee }));
   function mine(hash: Hex, tx: Tx, recipient: Hex, buy = amount) {
     transactions.set(hash, { hash, blockHash, blockNumber: '0x2', chainId: '0xa4ec',
       from: sender, to: tx.to, input: tx.data, value: '0x0', ...feeFields });

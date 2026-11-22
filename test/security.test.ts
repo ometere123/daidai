@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
-import { type Hex } from 'viem';
+import { createPublicClient, custom, encodeAbiParameters, toFunctionSelector, type Hex } from 'viem';
+import { celo } from 'viem/chains';
 import { authorizationMessage, authorizationPacket, verifyAuthorization } from '../src/authorization.ts';
 import { browserWallet, type InjectedProvider } from '../src/browser-wallet.ts';
 import { walletBoundary } from '../src/wallet-boundary.ts';
-import { type Settlement } from '../src/celo.ts';
+import { celoGasPriceOracle, celoL1Block, estimateCeloFees, type Settlement } from '../src/celo.ts';
 import { cngn, commit, reactor, Spike, usdt } from '../src/invoice.ts';
 import { feeFields, feeLimits, origin, readFixture, transactionHash, transfer } from './rpc-fixture.ts';
 
@@ -101,6 +102,9 @@ test('RPC simulation enforces gas, total fee and network before handoff', async 
   rpc.state.gas = '0x5208';
   rpc.state.fee = feeLimits.totalWei + 1n;
   await assert.rejects(rpc.reader.preflight(call, feeLimits), /ceiling/);
+  rpc.state.fee = 500_000n;
+  rpc.state.rollupFee = feeLimits.rollupReserveWei + 1n;
+  await assert.rejects(rpc.reader.preflight(call, feeLimits), /ceiling/);
   rpc.state.chain = '0x1';
   await assert.rejects(rpc.reader.preflight(call, feeLimits), /chain/);
   assert(!rpc.calls.some(method => /send|sign/i.test(method)));
@@ -139,4 +143,41 @@ test('authenticated loopback wallet boundary refuses wrong origin, token, replay
     await rejected;
     assert.deepEqual(methods, ['eth_accounts', 'eth_chainId']);
   } finally { browser.dispose(); boundary.close(); }
+});
+
+test('Celo fee estimation uses the verified oracle and propagates unavailable or unsupported fee data', async () => {
+  let rejectOracle = false;
+  let rejectOperator = false;
+  let scalar = 0n;
+  let l1Fee = 17n;
+  let oracleHits = 0;
+  const client = createPublicClient({ chain: celo, transport: custom({ async request({ method, params }) {
+    if (method === 'eth_gasPrice') return '0x2';
+    assert.equal(method, 'eth_call');
+    const req = (params as [{ to: string; data: string }])[0];
+    if (req.to.toLowerCase() === celoGasPriceOracle.toLowerCase()) {
+      oracleHits++;
+      assert(req.data.startsWith(toFunctionSelector('getL1Fee(bytes)')));
+      if (rejectOracle) throw Error('oracle unavailable');
+      return encodeAbiParameters([{ type: 'uint256' }], [l1Fee]);
+    }
+    assert.equal(req.to.toLowerCase(), celoL1Block);
+    if (rejectOperator) throw Error('operator unavailable');
+    if (req.data === toFunctionSelector('operatorFeeScalar()')) return encodeAbiParameters([{ type: 'uint256' }], [scalar]);
+    assert.equal(req.data, toFunctionSelector('operatorFeeConstant()'));
+    return encodeAbiParameters([{ type: 'uint256' }], [0n]);
+  } }, { retryCount: 0 }) });
+  const call = { from: sender, to: reactor, data: '0x1234', value: '0x0' } as const;
+  assert.deepEqual(await estimateCeloFees(client, call, 100n), { totalWei: 217n, rollupWei: 17n });
+  assert.equal(oracleHits, 1);
+  l1Fee = 0n;
+  assert.deepEqual(await estimateCeloFees(client, call, 100n), { totalWei: 200n, rollupWei: 0n });
+  scalar = 1n;
+  await assert.rejects(estimateCeloFees(client, call, 100n), /unsupported Celo operator fee/);
+  scalar = 0n;
+  rejectOracle = true;
+  await assert.rejects(estimateCeloFees(client, call, 100n), /oracle unavailable/);
+  rejectOracle = false;
+  rejectOperator = true;
+  await assert.rejects(estimateCeloFees(client, call, 100n), /operator unavailable/);
 });

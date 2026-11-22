@@ -78,7 +78,8 @@ const tx = block?.transactions?.find(tx => tx.type === '0x2' && tx.chainId === '
   block?.transactions?.find(tx => tx.chainId === '0xa4ec');
 const call = { from: sender, to: target, value: '0x0', data: '0x', gas: '0x30d40',
   maxFeePerGas: '0x' + (BigInt(latest.result?.baseFeePerGas ?? '0x1') * 2n + 1n).toString(16), maxPriorityFeePerGas: '0x1' };
-const [simple, sim, canonical, lookup, receipt] = await Promise.all([
+const readCall = { to: sellToken, data: '0x313ce567' };
+const [simple, sim, canonical, lookup, receipt, contractRead, gasEstimate] = await Promise.all([
   rpc('eth_simulateV1', [{ blockStateCalls: [{ calls: [{ to: sellToken, data: '0x313ce567' }] }], validation: true }, 'latest']),
   rpc('eth_simulateV1', [{ blockStateCalls: [{ calls: [call], stateOverrides: {
     [sender]: { balance: '0xde0b6b3a7640000' },
@@ -88,6 +89,7 @@ const [simple, sim, canonical, lookup, receipt] = await Promise.all([
   block ? rpc('eth_getBlockByNumber', [block.number, false]) : Promise.resolve({}),
   tx ? rpc('eth_getTransactionByHash', [tx.hash]) : Promise.resolve({}),
   tx ? rpc('eth_getTransactionReceipt', [tx.hash]) : Promise.resolve({}),
+  rpc('eth_call', [readCall, 'latest']), rpc('eth_estimateGas', [readCall]),
 ]);
 const calls = sim.result?.[0]?.calls;
 let account;
@@ -110,11 +112,14 @@ const latestAgeSeconds = blockAge(latest.result);
 // Qualification rejects stale or future-dated snapshots, even when the endpoint is internally consistent.
 const fresh = finalizedAgeSeconds !== null && finalizedAgeSeconds >= -30 && finalizedAgeSeconds <= 4 * 3600 &&
   latestAgeSeconds !== null && latestAgeSeconds >= -30 && latestAgeSeconds <= 300;
+const contractPass = typeof contractRead.result === 'string' && /^0x[0-9a-f]{64}$/i.test(contractRead.result) &&
+  BigInt(contractRead.result) === 6n && typeof gasEstimate.result === 'string' &&
+  /^0x[0-9a-f]+$/i.test(gasEstimate.result) && BigInt(gasEstimate.result) > 0n;
 const simulationPass = simple.result?.[0]?.calls?.[0]?.status === '0x1' &&
   BigInt(simple.result[0].calls[0].returnData) === 6n && account?.debit === debit &&
   account.received === amount && !account.unexpected && rejectsAlteredLogs;
 console.log(JSON.stringify({
-  utc: new Date().toISOString(), endpoint: label, readPass, simulationPass, fresh, finalizedAgeSeconds, latestAgeSeconds,
+  utc: new Date().toISOString(), endpoint: label, readPass, simulationPass, contractPass, fresh, finalizedAgeSeconds, latestAgeSeconds,
   chain, finalized: summary(finalized, block && { hash: block.hash, number: block.number }),
   canonical: summary(canonical, canonical.result?.hash),
   lookup: summary(lookup, lookup.result && { hash: lookup.result.hash, chainId: lookup.result.chainId,
@@ -123,6 +128,7 @@ console.log(JSON.stringify({
     blockHash: receipt.result.blockHash, status: receipt.result.status, logs: receipt.result.logs?.length }),
   decimals: summary(simple, simple.result?.[0]?.calls?.[0]),
   simulation: summary(sim, calls && calls.map(c => ({ status: c.status, logs: c.logs, errorCode: c.error?.code }))),
+  contractRead: summary(contractRead, contractRead.result), gasEstimate: summary(gasEstimate, gasEstimate.result),
   account, rejectsAlteredLogs,
 }, (_, value) => typeof value === 'bigint' ? value.toString() : value, 2));
-process.exitCode = readPass && simulationPass && fresh ? 0 : 2;
+process.exitCode = readPass && simulationPass && contractPass && fresh ? 0 : 2;

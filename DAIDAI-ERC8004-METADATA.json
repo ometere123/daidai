@@ -1,0 +1,8 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "Daidai — Exact-Out Invoice Agent",
+  "description": "Daidai is a prototype for exact-amount stablecoin invoice settlement on Celo. It prepares a USDt-to-cNGN conversion through Textile FX, checks the invoice amount and spend cap, and prepares a separate cNGN payout for human approval. Daidai has no public service endpoint or demonstrated mainnet invoice settlement.",
+  "services": [],
+  "x402Support": false,
+  "active": false
+}
