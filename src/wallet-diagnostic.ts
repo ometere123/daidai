@@ -19,7 +19,7 @@ button.addEventListener('click', async () => {
   try {
     legacy.textContent = 'P08B.18 provider gate in this session: ' + legacyWalletGate(window.ethereum);
     const provider = detected.pick(window.ethereum);
-    const session = await bootstrapWallet(ticket);
+    const session = await bootstrapWallet(ticket());
     if (session.expected !== expected) throw Error('unexpected diagnostic response');
     const chain = await provider.request({ method: 'eth_chainId' });
     if (chain !== '0xa4ec') { status.textContent = 'WRONG_CHAIN — Select Celo Mainnet (42220). Bootstrap passed.'; return; }

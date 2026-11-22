@@ -70,9 +70,20 @@ export function detectWallets(target: EventTarget) {
 }
 
 export function takeBootstrapFragment() {
-  const fragment = location.hash.slice(1);
-  history.replaceState(null, '', '/');
-  return fragment;
+  let fragment = location.hash.slice(1);
+  const capture = () => {
+    if (!fragment) fragment = location.hash.slice(1);
+    if (location.hash) history.replaceState(null, '', '/');
+  };
+  capture();
+  addEventListener('hashchange', capture);
+  return () => {
+    capture();
+    removeEventListener('hashchange', capture);
+    const ticket = fragment;
+    fragment = '';
+    return ticket;
+  };
 }
 
 export async function bootstrapWallet(ticket: string) {
