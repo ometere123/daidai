@@ -1,29 +1,34 @@
 # Daidai | P08B.13 registration approval worksheet
 
-**DRAFT. No transaction is ready to sign.** This worksheet requests metadata and hosting review only. No signing, wallet prompt or broadcast is authorized here.
+**Read-only preparation PASS. Execution NO-GO pending separate approval and refreshed checks.** This is an unsigned decoded intent. No wallet prompt, signature or broadcast was made.
 
-| Field | Planned value |
+| Field | Verified specimen at 12:42 WAT on 22 November 2026 |
 |---|---|
 | Sender | 0xe4f6b961e91b1c5c17ff34a33cbb5a998589e49e |
 | Chain | Celo Mainnet 42220 |
 | Registry | 0x8004A169FB4a3325136EB29fA0ceB6D2e539a432 |
-| Method | register(string), selector 0xf2c298be |
-| Decoded intent | Mint one ERC-8004 identity to the calling EOA using the approved public Daidai registration-file URI |
-| Metadata URI | BLOCKED. Pending approval, publication and unauthenticated retrieval |
-| Value | 0 CELO |
-| Pending nonce | 0 observed. Refresh before preparing the exact request |
-| Attribution | One schema-0 ERC-8021 suffix with celo_597f1146c487 |
-| Exact calldata, gas, max fee per gas, priority fee, rollup reserve, total maximum cost | BLOCKED pending the actual resolving URI and qualified endpoint |
-| Indicative budget | 0.0394360775 CELO for the prior placeholder specimen. This is not a cap for the final transaction |
+| Decoded call | register(string) to mint one ERC-8004 identity to the calling EOA |
+| Metadata URI | ipfs://bafkreiavpp3s66jsimy2dvtw3c44ngvci2aqdbctpgwppncfed7j2u4yui |
+| Native value | 0 CELO |
+| Nonce | 0 at both latest and pending |
+| Attribution | Exactly one schema-0 ERC-8021 suffix carrying celo_597f1146c487 |
+| Registry and account precheck | balanceOf zero at latest and finalized, account has no deployed code |
+| Exact tagged simulation and gas estimate | PASS, 203,970 gas |
+| Gas limit | 244,764 gas, 20% above the estimate |
+| Max fee per gas | 240.001 gwei |
+| Max priority fee per gas | 0.001 gwei |
+| Rollup reserve | 0.000100000000000000 CELO. The oracle and operator fee estimate were zero at the check |
+| Total proposed budget | 0.058843604764 CELO, comprising 0.058743604764 CELO execution cap plus 0.0001 CELO reserve |
+| Finalized balance | 32.720588235294117647 CELO at finalized head 83445739, sufficient for the proposed cap |
 
-## Gates
+The explicit gas and max-fee fields cap execution gas. Rollup fee reserves and estimates are planning controls and do not guarantee future L1 charges. Recheck all fees, balance, identity holdings and pending nonce immediately before any future approval. If any reviewed field or cap changes, provide a new worksheet. Confirm the MetaMask connectivity warning is resolved and the actual send path preserves the sender and calldata before requesting the owner's approval. No execution is permitted by this worksheet.
 
-1. Approve the exact draft JSON and proposed IPFS hosting. Publication or pinning requires separate explicit permission. Verify the public URI returns precisely the reviewed bytes before using it.
-2. Independently confirm the funding receipt is finalized and finalized CELO covers the eventual budget. Recheck the identity registry, sender code, pending nonce and unsettled intents. If an owned suitable identity exists, stop and check Loops support before proposing a duplicate.
-3. Resolve the MetaMask connectivity warning and qualify the private Celo RPC. Reconfirm the pinned EOA and Celo chain with the exact reviewed send path, with signing disabled.
-4. Populate register(string) with the actual public URI. Use the adapter's final tagged calldata builder. Decode the method and URI, strip the known suffix and compare the remaining bytes with fresh ABI encoding. Decode one suffix carrying only the issued code. Confirm fixed sender, chain, registry, pending nonce and zero value.
-5. Simulate the full tagged bytes with eth_call and estimate gas using the same envelope. Round up the estimate with a stated margin. Choose an explicit max fee per gas and priority fee, validate live base fee, and calculate the total budget as gas limit times max fee per gas plus a separate rollup reserve. Check the actual Celo oracle and operator parameters. Reject any transport failure, unsupported fee state, insufficient funds, or stale estimate.
-6. Present the exact calldata, complete decoded intent, nonce, refreshed fee fields, maximum budget and evidence to the user. Obtain separate approval for that one transaction and, if an eventual submission step is distinct, separate broadcast authorization. Stop on any mismatch. Never fill the metadata field with a placeholder.
-7. After any separately authorized broadcast, independently verify the finalized receipt and actual tagged calldata. Extract the real agent ID from Registered and check owner and agent wallet. Organizer-side attribution and identity checks remain independent, and any Loops change requires explicit approval.
+## Exact unsigned calldata
 
-[Registry guide](https://docs.celo.org/build/agents/8004) · [ERC-8021 SDK](https://github.com/celo-org/attribution-tags/blob/main/sdk/README.md)
+~~~text
+0xf2c298be00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000042697066733a2f2f6261666b72656961767070337336366a73696d793264767477336334346e677663693261716462637470677770706e63666564376a32753479756900000000000000000000000000000000000000000000000000000000000063656c6f5f353937663131343663343837110080218021802180218021802180218021
+~~~
+
+The registration tag was verified by decoding the final input. The published metadata was retrieved through an independent gateway and matched the approved SHA-256. Neither a simulated return value nor this worksheet is a minted agent ID. If separately authorized later, record the actual ID from the finalized Registered event and verify owner, agent wallet and transaction input independently. Loops attribution and identity checks remain pending.
+
+[Publication evidence](P08B13-METADATA-PUBLICATION.md) · [Celo registry guide](https://docs.celo.org/build/agents/8004)
