@@ -315,7 +315,6 @@ export function Detail({ invoice, now, update, go, announce }: Props) {
             : qs === 'invalid' ? 'It didn’t match the invoice, so it can’t be used. No USDt was spent.'
               : 'The ' + formatTokenAmount(invoice.allowance, 'USDt') + ' allowance is still active. No USDt was spent.';
     open = <section className="panel stage-open" aria-labelledby="open-h">
-      <span className="costs-line" aria-hidden="true"><span>costs</span></span>
       <h2 id="open-h" className={'heading' + (qs === 'over' ? ' text-error' : '')}>{heading}</h2>
       <p>{line}</p>
       <PlumbLine invoice={invoice} now={now} requesting={requesting} />

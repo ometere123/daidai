@@ -521,3 +521,10 @@ button:disabled { cursor: not-allowed; }
 .topbar { height: auto; min-height: var(--topbar-h); flex-wrap: wrap; padding-top: 6px; padding-bottom: 6px; }
 .top-right { flex-wrap: wrap; justify-content: flex-end; }
 .panel, .sheet-doc, .stages-done { min-width: 0; overflow-wrap: anywhere; }
+
+/* Gauge labels must never wrap (the panel's overflow-wrap broke "95" into "9 / 5" on mobile). */
+.gauge, .gauge * { overflow-wrap: normal; }
+.gauge-tick span { white-space: nowrap; }
+.gauge-tick:last-child span { left: auto; right: 0; transform: none; }
+.gauge-head, .gauge-foot { flex-wrap: wrap; }
+.gauge-foot > :last-child:not(:first-child) { margin-left: auto; }
