@@ -2,13 +2,15 @@ import type { RegistrationReview } from './registration.ts';
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { oneUseBootstrap } from './localhost-bootstrap.ts';
 import { address } from './invoice.ts';
 import { walletBoundary } from './wallet-boundary.ts';
 
 const shell = '<!doctype html><meta charset="utf-8"><title>Daidai local wallet bridge</title><h1>Daidai wallet bridge</h1><button id="start">Start local session</button><p id="status"></p><script type="module" src="/entry.js"></script>';
 const entry = `
 import {browserWallet} from '/browser-wallet.ts';
+import {bootstrapWallet, detectWallets, startupStatus} from '/wallet-startup.ts';
+const detected = detectWallets(window);
 const expected = document.querySelector('#registration');
 const reviewed = expected && JSON.parse(expected.textContent);
 const fragment = location.hash.slice(1);
@@ -25,13 +27,9 @@ document.querySelector('#cancel')?.addEventListener('click', () => {
 document.querySelector('#start').addEventListener('click', async () => {
   try {
     document.querySelector('#start').disabled = true;
-    const provider = window.ethereum;
-    if (!provider || (reviewed && (!provider.isMetaMask || provider.providers?.length > 1))) {
-      throw Error('Unambiguous injected MetaMask unavailable');
-    }
-    const response = await fetch('/bootstrap', {method:'POST', headers:{Authorization:'Bearer '+fragment}});
-    if (!response.ok) throw Error('Bootstrap denied');
-    const {token,sender} = await response.json();
+    const provider = reviewed || !window.ethereum ? detected.pick(window.ethereum) : window.ethereum;
+    const {token,sender} = await bootstrapWallet(fragment);
+    if (typeof token !== 'string' || typeof sender !== 'string') throw Error('unexpected bootstrap response');
     const wallet = browserWallet({provider,token,sender,endpoint:'/wallet',
       registration:reviewed?.transaction, review:job=>Promise.resolve(!cancelled && confirm('Review the exact local wallet job:\\n'+JSON.stringify(job,null,2)))});
     const interval = setInterval(() => wallet.step().catch(() => {
@@ -41,7 +39,8 @@ document.querySelector('#start').addEventListener('click', async () => {
     addEventListener('pagehide', stop, {once:true});
     if (cancelled) { stop(); return; }
     status.textContent='Local session started. Only previously permitted account access is used.';
-  } catch {status.textContent='Local session could not start';}
+  } catch (error) {status.textContent=startupStatus(error);}
+  finally {detected.close();}
 }, {once:true});
 `;
 
@@ -59,12 +58,10 @@ export async function startWalletHost(senderAddress: string, registration?: {
     : shell;
   const sender = address(senderAddress);
   const asset = new Map<string, string>([['/entry.js', entry]]);
-  for (const file of ['browser-wallet.ts', 'taker-schema.ts']) {
+  for (const file of ['browser-wallet.ts', 'taker-schema.ts', 'wallet-startup.ts']) {
     asset.set('/' + file, stripTypeScriptTypes(readFileSync(new URL(file, import.meta.url), 'utf8')));
   }
-  const bootstrap = randomBytes(32).toString('hex');
-  const expected = Buffer.from('Bearer ' + bootstrap);
-  let bootstrapped = false;
+  const bootstrap = oneUseBootstrap(registration ? Date.parse(registration.review.expiresUTC) : Date.now() + 300_000);
   let origin = '';
   let boundary: ReturnType<typeof walletBoundary>;
   const server = createServer(async (req, res) => {
@@ -81,13 +78,12 @@ export async function startWalletHost(senderAddress: string, registration?: {
       if (req.method === 'GET' && path && asset.has(path)) return reply(200, asset.get(path), 'text/javascript');
       if (req.method !== 'POST' || req.headers.origin !== origin) return reply(403);
       if (path === '/bootstrap') {
-        const supplied = Buffer.from(req.headers.authorization ?? '');
-        if (bootstrapped || supplied.length !== expected.length || !timingSafeEqual(expected, supplied)) return reply(403);
-        bootstrapped = true;
+        const status = bootstrap.consume(req.headers.authorization);
+        if (status !== 200) return reply(status);
         registration?.start();
         return reply(200, JSON.stringify({ token: boundary.token, sender }), 'application/json');
       }
-      if (path !== '/wallet' || !bootstrapped) return reply(404);
+      if (path !== '/wallet' || !bootstrap.used) return reply(404);
       if (req.headers['content-type'] !== 'application/json') return reply(415);
       const chunks: Buffer[] = [];
       let size = 0;
@@ -112,7 +108,7 @@ export async function startWalletHost(senderAddress: string, registration?: {
   origin = 'http://127.0.0.1:' + bound.port;
   boundary = walletBoundary(origin, sender);
   return {
-    origin, bootstrapUrl: origin + '/#' + bootstrap, provider: boundary.provider, signTaker: boundary.signTaker,
+    origin, bootstrapUrl: origin + '/#' + bootstrap.ticket, provider: boundary.provider, signTaker: boundary.signTaker,
     async close() {
       boundary.close();
       await new Promise<void>((resolve, reject) => {
