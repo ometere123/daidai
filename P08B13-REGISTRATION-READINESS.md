@@ -8,7 +8,7 @@
 |---|---|
 | Chain | Celo Mainnet 42220 |
 | Funding | 32.720588235294117647 native CELO from 0xfd69a5d0b8330dc86e266304b3d1abe3f57b9d09 to 0xe4f6b961e91b1c5c17ff34a33cbb5a998589e49e |
-| Receipt | Successful at block 83444273, hash 0x9dbcfa7eb50eb27fb14555794cff39f0129a948c5bc96cda2e42e3100980fd9e. Transaction and receipt agreed with the canonical block |
+| Receipt | Successful transaction 0xd8d76e199c531e49c44e9db8bb2f50932d45f04f180f6b4df7b84d65f7317b99 in block 83444273. The containing block hash is 0x9dbcfa7eb50eb27fb14555794cff39f0129a948c5bc96cda2e42e3100980fd9e. Transaction and receipt agreed with the canonical block |
 | Finality | Forno finalized head 83443816, below the funding block, at 12:13 WAT |
 | Balance | Latest 32.720588235294117647 CELO. Finalized 0 CELO at the observed finalized state |
 | Activity | Latest, finalized and pending outbound nonce 0. Blockscout outgoing list empty. No unexpected outbound transaction observed |
@@ -35,3 +35,5 @@ The exact [approved JSON](DAIDAI-ERC8004-METADATA.json) is now pinned publicly t
 ## Verification
 
 Strict TypeScript checking passed. The issued-tag run passed all 54 regression tests, with zero failures and no skips. All seven isolated Chromium tests passed. The new tests verify the exact oracle target, successful zero and nonzero L1 fee reads, rollup reserve enforcement, RPC failure propagation and refusal of nonzero operator parameters. The corrected helper also ran against public Forno on an unsigned USDt decimals call. Gas was 30,951, estimated total fee 0.0062675775 CELO and rollup fee 0 CELO at that instant. This is a fee-helper probe, not an estimate for the approval transaction.
+
+P08B.14 queried both hashes directly. The original receipt row gave the containing block hash without labeling it as such. It is not a second funding transaction. See [final review](P08B14-REGISTRATION-FINAL-REVIEW.md).
