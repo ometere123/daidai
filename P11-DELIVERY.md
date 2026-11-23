@@ -22,3 +22,7 @@ Next action is to implement the versioned invoice contract and local D1 persiste
 `ab5fe96` opened draft PR #8. Versioned product contracts and the loopback Worker route now use existing service HMAC, replay and session guards. Product D1 tables track immutable revisions, idempotency, merchant access and hashed share records. Product commitments use the existing invoice digest and do not enter financial attempt stores.
 
 Tests are pending for this checkpoint. Next action is to wire the authenticated merchant and payer pages, then exercise the Worker and browser paths. No external service is needed for this slice.
+
+## Checkpoint 2
+
+`d164bdc` added the Worker/D1 product boundary. This checkpoint connects the authenticated merchant and payer screens, the signed server client, immutable revision history, and one-invoice read-only share links. Simulation uses documented Textile preview fields and a local review expiry. The product accepts no wallet or execution requests. Frontend strict TypeScript passed. The full-stack and D1 adversarial tests are next. Public RPC remains unqualified.
