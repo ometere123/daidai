@@ -31,3 +31,12 @@ Tests are pending for this checkpoint. Next action is to wire the authenticated 
 ## Checkpoint 3
 
 `bf3298f` wired the customer pages. The isolated D1 product tests now pass 6/6, including idempotent creation, revision races, immutable history, restart persistence, tenant and merchant isolation, scoped expiring/revocable sharing and database failure. Worker strict TypeScript passed after explicitly modeling the product request union. Next action is the end-to-end browser test and Celo/Textile evidence checkpoint. D1 and Next run on disposable local state only.
+
+
+## Checkpoint 4
+
+`1976543` verified the customer D1 boundary. Seven Textile preview contract tests passed. They check the documented preview request shape, exact cNGN, fee-inclusive USDt debit, deadline, no liquidity and rejection of a firm-quote payload. The app uses the deterministic source only. Official interface: https://docs.textilecredit.com/api/v2/rfq.html.
+
+The public Forno probe used the existing four-method read-only transport against P08 registration evidence. It did not establish canonical finality: one probe failed receipt evidence validation and a follow-up timed out. Record this as blocked pending a qualified Celo provider. Deterministic Celo verification remains in the root suite. Active product commitments have no approved production payout observation pipeline.
+
+Next action is to checkpoint the browser validation, then review dependency advisories and refresh the full CI run.
