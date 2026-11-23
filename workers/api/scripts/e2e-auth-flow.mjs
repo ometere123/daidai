@@ -3,7 +3,7 @@
 // invitation reuse, and Preview gating. Local only; prints no codes, tokens or keys.
 // Prereqs: workers/api: npm run seed (invitations are single-use, so re-seed before each run) ; apps/web: npm run build. Usage: node workers/api/scripts/e2e-auth-flow.mjs
 import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,14 +16,18 @@ const codes = id.invitations['demo-viewer'];
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail ? ' — ' + detail : '')); };
 const wait = async (url, ok = r => r.status < 500) => { for (let i = 0; i < 80; i++) { try { if (ok(await fetch(url, { redirect: 'manual' }))) return; } catch {} await new Promise(r => setTimeout(r, 500)); } throw Error('timeout ' + url); };
-const kill = p => { try { process.kill(-p.pid, 'SIGTERM'); } catch {} };
-const startWeb = (port, extra) => spawn('npx', ['next', 'start', '--hostname', '127.0.0.1', '--port', String(port)], { cwd: WEB, detached: true, stdio: 'ignore', env: {
+const kill = p => { if (!p.pid) return; try { process.kill(process.platform === 'win32' ? p.pid : -p.pid, 'SIGTERM'); } catch {} };
+const startWeb = (port, extra) => spawn(process.execPath, [resolve(WEB, 'node_modules/next/dist/bin/next'), 'start', '--hostname', '127.0.0.1', '--port', String(port)], { cwd: WEB, detached: true, stdio: 'ignore', env: {
   ...process.env, DAIDAI_API_BASE_URL: 'http://127.0.0.1:8787', DAIDAI_SERVICE_KEY_ID: id.service.keyId, DAIDAI_SERVICE_KEY: id.service.secret, ...extra } });
 
-const worker = spawn('npm', ['run', 'dev'], { cwd: W, env: { ...process.env, DAIDAI_AUDIENCE: id.audience }, stdio: 'ignore', detached: true });
+const worker = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', '--experimental-strip-types', 'scripts/dev-server.mjs'], { cwd: W, env: { ...process.env, DAIDAI_AUDIENCE: id.audience }, stdio: 'ignore', detached: true });
 const procs = [worker];
-const browser = await chromium.launch({ executablePath: process.env.DAIDAI_CHROMIUM_PATH ?? '/opt/pw-browsers/chromium' });
+let browser;
 try {
+  const executablePath = process.env.DAIDAI_CHROMIUM_PATH ?? [
+    'C:/Program Files/Google/Chrome/Application/chrome.exe', '/opt/pw-browsers/chromium', '/usr/bin/chromium',
+  ].find(existsSync);
+  browser = await chromium.launch({ executablePath, args: ['--disable-extensions'] });
   await wait('http://127.0.0.1:8787/v1/health', r => r.status === 401);
   const web = startWeb(3400, { DAIDAI_APP_ENABLED: '1' }); procs.push(web);
   await wait('http://127.0.0.1:3400/');
@@ -48,7 +52,7 @@ try {
   await page.goto(base + '/invoices/inv-a2');
   const detail = await page.textContent('body');
   check('detail shows the authoritative record (digest, authorization, payout outcome unknown)', /[a-f0-9]{64}/.test(detail) && /Outcome unknown/.test(detail) && /Authoritative/.test(detail));
-  check('detail never shows Settled without verified chain evidence', !/\bSettled\b(?! unverified)/.test(detail.replace(/Settlement unverified|not settled/gi, '')) || /Reconciliation required|unverified/i.test(detail));
+  check('detail never shows Settled without verified chain evidence', !/\bSettled\b/.test(detail));
   check('no session token in the HTML', !(await page.content()).includes(cookie?.value ?? '\u0000'));
 
   await page.goto(base + '/invoices/inv-b1');
@@ -85,7 +89,7 @@ try {
   const r2 = await pp.goto('http://127.0.0.1:3401/login');
   check('Preview without DAIDAI_PREVIEW_ACCESS: private pages and /login are 404', r1?.status() === 404 && r2?.status() === 404, `${r1?.status()} ${r2?.status()}`);
 } finally {
-  await browser.close();
+  await browser?.close();
   procs.forEach(kill);
 }
 const failed = results.filter(r => !r.ok).length;

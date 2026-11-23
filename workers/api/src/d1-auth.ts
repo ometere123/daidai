@@ -35,8 +35,8 @@ export type NonceClaim = 'claimed' | 'replayed' | 'unavailable';
  */
 export async function claimNonce(db: D1Like, keyId: string, nonce: string, nowMs: number): Promise<NonceClaim> {
   try {
-    await db.prepare('INSERT INTO service_nonces (key_id, nonce, seen_at_ms) VALUES (?, ?, ?)').bind(keyId, nonce, nowMs).run();
-    return 'claimed';
+    const result = await db.prepare('INSERT INTO service_nonces (key_id, nonce, seen_at_ms) VALUES (?, ?, ?)').bind(keyId, nonce, nowMs).run();
+    return result.success && changes(result) === 1 ? 'claimed' : 'unavailable';
   } catch (e) {
     const msg = String((e as Error)?.message ?? e);
     return /UNIQUE constraint failed: service_nonces|SQLITE_CONSTRAINT_PRIMARYKEY/i.test(msg) ? 'replayed' : 'unavailable';
@@ -54,8 +54,9 @@ export type IssuedSession = Readonly<{ token: string; expiresAtMs: number; idleT
  * Atomically consumes an unused, unexpired invitation and creates a session for its (tenant, viewer). Returns null for an
  * unknown, used or expired invitation (callers answer with one uniform 'invalid-credentials'). D1 errors propagate.
  */
-export async function exchangeInvitation(db: D1Like, code: string, nowMs: number): Promise<IssuedSession | null> {
+export async function exchangeInvitation(db: D1Like, code: string, nowMs: number, previousToken = ''): Promise<IssuedSession | null> {
   const codeHash = await sha256Hex(code);
+  const priorHash = /^[A-Za-z0-9_-]{32,256}$/.test(previousToken) ? await sha256Hex(previousToken) : null;
   const token = randomSecret();
   const tokenHash = await sha256Hex(token);
   const expiresAtMs = nowMs + SESSION_ABSOLUTE_MS;
@@ -68,14 +69,18 @@ export async function exchangeInvitation(db: D1Like, code: string, nowMs: number
       // Only the request that won the conditional update binds its own token hash, so only it inserts a session.
       db.prepare(`INSERT INTO viewer_sessions (token_sha256, viewer_id, tenant_id, authenticated_at_ms, expires_at_ms, idle_expires_at_ms,
           revoked_at_ms, created_from, rotated_from)
-        SELECT ?, viewer_id, tenant_id, ?, ?, ?, NULL, code_sha256, NULL FROM viewer_invitations WHERE code_sha256 = ? AND session_sha256 = ?`)
-        .bind(tokenHash, nowMs, expiresAtMs, idle, codeHash, tokenHash),
+        SELECT ?, viewer_id, tenant_id, ?, ?, ?, NULL, code_sha256, (SELECT token_sha256 FROM viewer_sessions WHERE token_sha256 = ? AND revoked_at_ms IS NULL) FROM viewer_invitations WHERE code_sha256 = ? AND session_sha256 = ?`)
+        .bind(tokenHash, nowMs, expiresAtMs, idle, priorHash, codeHash, tokenHash),
+      db.prepare(`UPDATE viewer_sessions SET revoked_at_ms = ? WHERE token_sha256 = ? AND revoked_at_ms IS NULL
+        AND EXISTS (SELECT 1 FROM viewer_sessions AS replacement WHERE replacement.token_sha256 = ?
+          AND replacement.rotated_from = viewer_sessions.token_sha256)`).bind(nowMs, priorHash, tokenHash),
     ]);
   } catch (e) {
     // A losing concurrent exchange can hit the single-use trigger: that is a used invitation, not an outage.
     if (/invitation already used/.test(String((e as Error)?.message ?? e))) return null;
     throw e;
   }
+  if (results.length !== 3 || results.some(result => !result.success)) throw Error('session exchange unavailable');
   if (changes(results[0]) !== 1 || changes(results[1]) !== 1) return null;
   return Object.freeze({ token, expiresAtMs, idleTimeoutMs: SESSION_IDLE_MS });
 }
@@ -105,8 +110,9 @@ export function d1SessionAuthenticator(db: D1Like): ViewerAuthenticator {
 
 /** Revokes the session for a token. Idempotent; an unknown token is a no-op (the caller always answers 'revoked'). */
 export async function revokeSession(db: D1Like, token: string, nowMs: number): Promise<void> {
-  await db.prepare('UPDATE viewer_sessions SET revoked_at_ms = ? WHERE token_sha256 = ? AND revoked_at_ms IS NULL')
+  const result = await db.prepare('UPDATE viewer_sessions SET revoked_at_ms = ? WHERE token_sha256 = ? AND revoked_at_ms IS NULL')
     .bind(nowMs, await sha256Hex(token)).run();
+  if (!result.success) throw Error('session revocation unavailable');
 }
 
 /** Operator revoke: every live session of a viewer in a tenant. Returns the number of sessions revoked. */

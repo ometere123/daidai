@@ -100,3 +100,14 @@ describe('R2 nonce store failures fail closed', () => {
     assert.equal(await claimNonce(a.db, 'prune', old, now), 'claimed');
   });
 });
+
+test('nonce-store acknowledgment must prove exactly one successful insert', async () => {
+  for (const response of [
+    { success: false, meta: { changes: 1 } },
+    { success: true, meta: { changes: 0 } },
+    { success: true, meta: {} },
+  ]) {
+    const db = { prepare: () => ({ bind: () => ({ run: async () => response }) }) };
+    assert.equal(await claimNonce(db as never, 'test', 'fixed_nonce_value1', Date.now()), 'unavailable');
+  }
+});

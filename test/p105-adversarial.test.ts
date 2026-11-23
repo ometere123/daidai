@@ -30,6 +30,7 @@ test('key rotation overlap is explicit and relabelling a signed request cannot c
   assert.equal(await validate(next, { keys: { next: newSecret } }), true);
   old.set(SERVICE_HEADERS.keyId, 'next');
   assert.equal(await validate(old), false);
+  assert.equal(await validate(old, { keys: { old: secret, next: secret } }), false, 'the signed key ID namespaces the replay claim');
 });
 
 test('an invalid HMAC does not spend the replay nonce and an exact replay is rejected', async () => {

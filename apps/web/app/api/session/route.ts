@@ -1,5 +1,5 @@
 /** POST /api/session: exchange an invitation for a session (P10.5). Origin-checked; uniform failure; never logs input. */
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { appEnabled, privateHeaders } from '../../../lib/app-gate';
 import { createSession } from '../../../lib/daidai-api';
 import { sameOrigin } from '../../../lib/origin';
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 const go = (location: string) => new NextResponse(null, { status: 303, headers: { ...privateHeaders, location } });
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   if (!appEnabled()) return new NextResponse('Not found', { status: 404, headers: privateHeaders });
   if (!sameOrigin(request)) return new NextResponse('Forbidden', { status: 403, headers: privateHeaders });
   let invitation = '';
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const v = form.get('invitation');
     invitation = typeof v === 'string' ? v.trim() : '';
   } catch { /* uniform failure below */ }
-  const result = await createSession(invitation);
+  const result = await createSession(invitation, request.cookies.get(SESSION_COOKIE)?.value);
   const maxAge = result.kind === 'session' ? sessionMaxAge(result.expiresAtMs) : null;
   if (result.kind !== 'session' || maxAge === null) return go('/login?e=1');
   const response = go('/invoices');

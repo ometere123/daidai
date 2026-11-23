@@ -12,7 +12,9 @@ export async function POST(request: NextRequest) {
   if (!appEnabled()) return new NextResponse('Not found', { status: 404, headers: privateHeaders });
   if (!sameOrigin(request)) return new NextResponse('Forbidden', { status: 403, headers: privateHeaders });
   const token = request.cookies.get(SESSION_COOKIE)?.value ?? '';
-  if (tokenPattern.test(token)) await revokeSession(token);
+  if (tokenPattern.test(token) && !(await revokeSession(token))) {
+    return new NextResponse('Sign-out unavailable. Try again.', { status: 503, headers: privateHeaders });
+  }
   const response = new NextResponse(null, { status: 303, headers: { ...privateHeaders, location: '/login' } });
   response.cookies.set(SESSION_COOKIE, '', { ...cookieAttributes, maxAge: 0 });
   return response;

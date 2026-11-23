@@ -53,6 +53,7 @@ const nonces = new NonceWindow();
 const invitations = new Map(); // code -> used
 const sessions = new Map(); // token -> { expiresAtMs, lastMs, idleMs, revoked }
 const log = [];
+let rejectRevocation = false;
 const issueInvitation = () => { const c = code(); invitations.set(c, false); return c; };
 const liveSession = t => { const s = sessions.get(t); const now = Date.now();
   if (!s || s.revoked || now >= s.expiresAtMs || now - s.lastMs > s.idleMs) return false; s.lastMs = now; return true; };
@@ -72,12 +73,13 @@ function startFake() {
         const parsed = parseSessionBody(body);
         if (!parsed || invitations.get(parsed.invitation) !== false) return send(403, errorBody('invalid-credentials'));
         invitations.set(parsed.invitation, true);
+        if (sessions.has(viewerToken)) sessions.get(viewerToken).revoked = true;
         const token = code(); const now = Date.now();
         sessions.set(token, { expiresAtMs: now + 12 * 3600_000, lastMs: now, idleMs: 30 * 60_000, revoked: false });
         return send(200, { apiVersion: 'v1', kind: 'session', token, expiresAtMs: now + 12 * 3600_000, idleTimeoutMs: 30 * 60_000 });
       }
       if (!liveSession(viewerToken)) return send(404, errorBody('not-found-or-forbidden'));
-      if (req.method === 'DELETE' && req.url === '/v1/sessions/current') { sessions.get(viewerToken).revoked = true; return send(200, { apiVersion: 'v1', kind: 'revoked' }); }
+      if (req.method === 'DELETE' && req.url === '/v1/sessions/current') { if (rejectRevocation) return send(503, errorBody('unavailable')); sessions.get(viewerToken).revoked = true; return send(200, { apiVersion: 'v1', kind: 'revoked' }); }
       if (req.method === 'GET' && req.url === '/v1/invoices') {
         return send(200, { apiVersion: 'v1', kind: 'invoice-list', invoices: [{ id: ID, revision: wire.revision, targetAtomic: wire.targetAtomic, maxDebitAtomic: wire.maxDebitAtomic }] });
       }
@@ -291,6 +293,15 @@ test('S2, S3, U1, U2: login → list → detail → logout, cookie flags, CSRF, 
     await visit(ctx, s.base + '/api/session/expired');
     assert.equal((await sessionCookie(ctx))?.value, cookie.value, 'expired handler cleared a valid session');
 
+    rejectRevocation = true;
+    try {
+      const unavailable = await fetch(s.base + '/api/session/logout', { method: 'POST', redirect: 'manual',
+        headers: { origin: s.base, cookie: COOKIE + '=' + cookie.value } });
+      assert.equal(unavailable.status, 503);
+      assert.equal(unavailable.headers.get('set-cookie'), null, 'revocation failure must not fake logout');
+      assert.equal(sessions.get(cookie.value).revoked, false);
+    } finally { rejectRevocation = false; }
+
     // U1: logout.
     const lp = await visit(ctx, s.base + '/invoices');
     await Promise.all([lp.page.waitForURL('**/login'), lp.page.click('button:has-text("Sign out")')]);
@@ -325,4 +336,28 @@ test('S2, S3, U1, U2: login → list → detail → logout, cookie flags, CSRF, 
     assert(!s.log().includes(cookie.value) && !s.log().includes(KEY) && !s.log().includes(inv), 'secret in server log');
     await ctx.close();
   } finally { s.stop(); }
+});
+
+test('login replaces a planted cookie and revokes the previous session only after success', async () => {
+  const s = await startNext(ENABLED);
+  const ctx = await newContext();
+  try {
+    const prior = liveToken();
+    await injectSession(ctx, s.base, prior);
+    const failed = await login(ctx, s.base, code());
+    assert.equal(new URL(failed.url()).pathname, '/login');
+    assert.equal((await sessionCookie(ctx))?.value, prior);
+    assert.equal(sessions.get(prior).revoked, false);
+    const accepted = await login(ctx, s.base, issueInvitation());
+    assert.equal(new URL(accepted.url()).pathname, '/invoices');
+    const replacement = await sessionCookie(ctx);
+    assert(replacement && replacement.value !== prior);
+    assert.equal(sessions.get(prior).revoked, true);
+    await injectSession(ctx, s.base, prior);
+    const denied = await visit(ctx, s.base + '/invoices');
+    assert.equal(new URL(denied.url).pathname, '/login');
+    noInvoiceData(denied, 'rotated credential');
+    assert.equal(await sessionCookie(ctx), undefined);
+    assert.equal(await denied.page.evaluate(() => window.walletCalls.length), 0);
+  } finally { await ctx.close(); s.stop(); }
 });

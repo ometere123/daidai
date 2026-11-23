@@ -94,14 +94,14 @@ export async function listInvoices(viewerToken: string): Promise<ListResult> {
 }
 
 /** Exchanges a single-use invitation. Every failure collapses to 'invalid' (no enumeration). */
-export async function createSession(invitation: string): Promise<SessionResult> {
+export async function createSession(invitation: string, previousToken = ''): Promise<SessionResult> {
   if (!invitationPattern.test(invitation)) return { kind: 'invalid' };
-  const parsed = parseSessionOrListResponse(await signedCall('POST', '/v1/sessions', { body: JSON.stringify({ invitation }) }));
+  const parsed = parseSessionOrListResponse(await signedCall('POST', '/v1/sessions', { body: JSON.stringify({ invitation }), viewerToken: tokenPattern.test(previousToken) ? previousToken : '' }));
   if (parsed?.kind === 'session') return { kind: 'session', token: parsed.token, expiresAtMs: parsed.expiresAtMs };
   return { kind: 'invalid' };
 }
 
-/** Revokes the session at the Worker. Best effort: the caller clears the cookie regardless. */
+/** Revokes the session at the Worker. The caller clears the cookie after revocation is confirmed. */
 export async function revokeSession(viewerToken: string): Promise<boolean> {
   if (!tokenPattern.test(viewerToken)) return false;
   const parsed = parseSessionOrListResponse(await signedCall('DELETE', '/v1/sessions/current', { viewerToken }));

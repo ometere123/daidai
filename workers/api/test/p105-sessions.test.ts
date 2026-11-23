@@ -293,3 +293,23 @@ describe('optional chain hook', () => {
     assert.equal(typeof chainFromEnv({ DAIDAI_CHAIN_RPC_URL: 'http://127.0.0.1:1', DAIDAI_ATTRIBUTION_CODE: 'd' })?.rpc, 'function', 'real createCeloRpc wired');
   });
 });
+
+test('rotation consumes a valid invite atomically and revokes only the prior browser session', async () => {
+  clock = T0 + 200;
+  const prior = await login();
+  const other = await login();
+  const secondInvite = await invite('tenant-a', 'demo-viewer');
+  const response = await req('POST', '/v1/sessions', { token: prior.token, body: JSON.stringify({ invitation: secondInvite.code }) });
+  assert.equal(response.status, 200);
+  const replacement = JSON.parse(response.text) as { token: string };
+  assert.notEqual(replacement.token, prior.token);
+  assert.equal((await read('inv-a1', replacement.token)).status, 200);
+  assert.equal((await read('inv-a1', prior.token)).status, 404);
+  assert.equal((await read('inv-a1', other.token)).status, 200);
+  const row = await w.db.prepare('SELECT rotated_from FROM viewer_sessions WHERE token_sha256 = ?')
+    .bind(await sha256Hex(replacement.token)).first<{ rotated_from: string }>();
+  assert.equal(row?.rotated_from, await sha256Hex(prior.token));
+  const reuse = await req('POST', '/v1/sessions', { token: other.token, body: JSON.stringify({ invitation: secondInvite.code }) });
+  assert.equal(reuse.status, 403);
+  assert.equal((await read('inv-a1', other.token)).status, 200);
+});

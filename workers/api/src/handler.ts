@@ -158,7 +158,7 @@ export async function handle(request: Request, deps: Deps): Promise<Response> {
       const keys = deps.keys();
       if (!keys) return fail('unavailable');
       const nowMs = deps.now();
-      const viewerToken = route === 'invoice' || route === 'invoice-list' || route === 'session-revoke' ? request.headers.get(VIEWER_HEADER) ?? '' : '';
+      const viewerToken = route === 'invoice' || route === 'invoice-list' || route === 'session-revoke' || route === 'session-create' ? request.headers.get(VIEWER_HEADER) ?? '' : '';
       const ok = await verifyRequest({ keys, headers: request.headers, method: request.method, path: new URL(request.url).pathname,
         body, viewerToken, nowMs, nonces: deps.nonces });
       if (!ok) return fail('unauthenticated-service');
@@ -176,7 +176,7 @@ export async function handle(request: Request, deps: Deps): Promise<Response> {
         if (!(deps.sessionLimiter ?? sessionLimiter).take(keyId, nowMs)) return fail('rate-limited');
         const input = parseSessionBody(body);
         if (!input) return fail('invalid-request');
-        const issued = await exchangeInvitation(db, input.invitation, nowMs);
+        const issued = await exchangeInvitation(db, input.invitation, nowMs, viewerToken);
         if (!issued) return fail('invalid-credentials');
         return respond({ apiVersion: 'v1', kind: 'session', token: issued.token, expiresAtMs: issued.expiresAtMs, idleTimeoutMs: issued.idleTimeoutMs });
       }
