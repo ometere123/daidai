@@ -24,3 +24,7 @@ Infrastructure head f74b78d. Added a fail-closed IdP contract with issuer/audien
 ## Celo checkpoint
 
 Identity head 3814c3c. Two deterministic provider-policy tests passed. The live historical probe found matching canonical P08 registration evidence on Forno and Ankr (block 0x4f9cc45, hash 0x1558a6120f0d99bab5b85806a854659407c96dd2ff16c51b79a75453fed5a72b, finalized head 0x4faf163). dRPC returned no receipt and the community endpoint timed out. This qualifies those historical observations only. Proposed policy requires independently operated providers, both canonical and finalized, with disagreement or unavailability blocking promotion. It is not enabled in production. Next: complete the non-dispatching Textile path and rerun the integrated walkthrough.
+
+## Textile checkpoint
+
+Celo head ea19f31. The official RFQ documentation distinguishes non-reserving preview from inventory-reserving firm RFQ. P12 has an injectable firm source only and never calls the reservation endpoint. The review reuses the existing signed-envelope parser, commitment/consent checks and Celo reader. It checks exact output, all-in debit and protocol fee, confirmed scoped allowance, balances, both gas budgets, exact tagged simulation and freshness after simulation. The separate payout review requires finalized conversion for the same commitment and separate exact payout verification. Two synthetic preparation tests passed. Next: integrate safety checks and rehearse both demonstrations.
