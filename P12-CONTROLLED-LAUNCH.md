@@ -37,3 +37,8 @@ Textile head 1d11279. Added one local command with separate product and public-c
 ## Security and CI checkpoint
 
 Demo head 538a15c. Local Chromium passed 29/29 checks with the D1 distributed limits and no wallet calls. Receipt verification now rejects malformed log indices and resamples canonical identity before attesting. Preparation rechecks balance freshness after simulation. CI runs the launch configuration check before strict TypeScript and the full regression matrix. The provider probe stays outside CI. Next: document operational procedures, verify exact-head CI and record any remaining external blockers.
+
+
+## Delivery checkpoint
+
+Security head afdd5dd. Six focused Node tests and two Worker launch tests passed. The fresh P12 browser suite passed all 29 local full-stack observations. Root, web and Worker npm audits each reported zero advisories. The runbook includes deployment controls, key rotation, backup/rollback, finality assumptions, incident handling, repeatable demos and a separately approved pilot plan. Production IdP, operator provisioning, hosted D1 and live settlement remain owner gates. Await exact-head GitHub Actions before marking PR #9 ready.

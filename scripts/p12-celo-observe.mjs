@@ -32,5 +32,7 @@ const results = await Promise.all(Object.entries(sources).map(async ([name, url]
     finalized: head.error ?? f?.number ?? 'missing', height, blockHash: valid ? b.hash : undefined };
 }));
 const valid = results.filter(r => r.valid);
+const independentAgreement = valid.length >= 2 && new Set(valid.map(r => r.blockHash)).size === 1;
 console.log(JSON.stringify({ evidence: 'P08 registration only', results,
-  independentAgreement: valid.length >= 2 && new Set(valid.map(r => r.blockHash)).size === 1 }, null, 2));
+  independentAgreement }, null, 2));
+if (!independentAgreement) process.exitCode = 1;
