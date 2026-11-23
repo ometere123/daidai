@@ -105,6 +105,12 @@ CREATE TRIGGER IF NOT EXISTS reconciled_not_landed_disabled BEFORE UPDATE OF clo
 CREATE TRIGGER IF NOT EXISTS verified_final_requires_hash BEFORE UPDATE OF closed ON attempts
   WHEN NEW.closed = 'verified-final' AND OLD.hash IS NULL
   BEGIN SELECT RAISE(ABORT, 'verified-final requires a recorded transaction hash'); END;
+-- verified-final must rest on the latest independent verdict for the recorded hash (raw SQL included).
+CREATE TRIGGER IF NOT EXISTS verified_final_requires_evidence BEFORE UPDATE OF closed ON attempts
+  WHEN NEW.closed = 'verified-final' AND OLD.hash IS NOT NULL AND (
+    (SELECT json_extract(detail, '$.result') FROM attempt_events WHERE attempt_id = OLD.attempt_id AND kind = 'verification' ORDER BY seq DESC LIMIT 1) IS NOT 'verified-final'
+    OR (SELECT json_extract(detail, '$.hash') FROM attempt_events WHERE attempt_id = OLD.attempt_id AND kind = 'verification' ORDER BY seq DESC LIMIT 1) IS NOT OLD.hash)
+  BEGIN SELECT RAISE(ABORT, 'verified-final requires the latest independent verdict for the recorded hash'); END;
 CREATE TRIGGER IF NOT EXISTS attempt_identity_immutable BEFORE UPDATE OF
   attempt_id, tenant_id, invoice_id, digest, recorded_revision, lineage, operation, created_at_ms, authorization, envelope ON attempts
   BEGIN SELECT RAISE(ABORT, 'attempt identity is immutable'); END;
@@ -208,7 +214,14 @@ export class AttemptLineageStore {
 
   /** Independent verification results are history, never a rewrite of the attempt. */
   appendVerification(attemptId: string, atMs: number, result: 'verified-final' | 'mismatch' | 'not-found' | 'not-final', verifier: string) {
-    this.tx(() => { check(this.row(attemptId), 'unknown attempt'); this.event(attemptId, 'verification', atMs, { result, verifier }); });
+    check(['verified-final', 'mismatch', 'not-found', 'not-final'].includes(result) && idPattern.test(verifier), 'invalid verification');
+    this.tx(() => {
+      const r = this.row(attemptId);
+      check(r, 'unknown attempt');
+      // A verdict is about a specific transaction: it can only be recorded once a hash exists, and it names that hash.
+      check(r.hash !== null, 'verification requires a recorded transaction hash');
+      this.event(attemptId, 'verification', atMs, { result, verifier, hash: r.hash });
+    });
   }
 
   /**
@@ -226,9 +239,10 @@ export class AttemptLineageStore {
       const r = this.row(attemptId);
       check(r, 'unknown attempt');
       check(r.hash !== null, 'verified-final requires a recorded transaction hash');
-      const verified = this.db.prepare(`SELECT 1 FROM attempt_events WHERE attempt_id = ? AND kind = 'verification'
-        AND json_extract(detail, '$.result') = 'verified-final' LIMIT 1`).get(attemptId);
-      check(verified, 'verified-final requires an independent verified-final verification');
+      const latest = this.db.prepare(`SELECT json_extract(detail, '$.result') AS result, json_extract(detail, '$.hash') AS hash
+        FROM attempt_events WHERE attempt_id = ? AND kind = 'verification' ORDER BY seq DESC LIMIT 1`).get(attemptId) as { result: string; hash: string } | undefined;
+      check(latest && latest.result === 'verified-final' && latest.hash === r.hash,
+        'verified-final requires an independent verified-final verification (the latest verdict, for the recorded hash)');
       this.event(attemptId, 'closed', atMs, { reason, closedBy });
       this.db.prepare('UPDATE attempts SET closed = ? WHERE attempt_id = ?').run(reason, attemptId);
     });
@@ -243,9 +257,16 @@ export class AttemptLineageStore {
     const out: string[] = [];
     for (const [operation, attemptId] of [['conversion', legacy.swapId], ['payout', legacy.payoutId]] as const) {
       if (!attemptId) continue;
-      check(typeof attemptId === 'string' && attemptId.length <= 200, 'invalid legacy attempt id');
+      check(typeof attemptId === 'string' && idPattern.test(attemptId), 'invalid legacy attempt id');
       this.tx(() => {
-        if (this.row(attemptId)) return;
+        const existing = this.row(attemptId);
+        if (existing) {
+          // Idempotent only for the identical legacy record; an id owned by another tenant/invoice/commitment/operation
+          // must not be silently skipped (that would leave this invoice without a blocking record).
+          check(existing.tenant_id === tenantId && existing.invoice_id === legacy.invoiceId && existing.digest === legacy.digest &&
+            existing.operation === operation, 'legacy attempt id conflict');
+          return;
+        }
         this.db.prepare(`INSERT INTO attempts (attempt_id, tenant_id, invoice_id, digest, recorded_revision, lineage, operation,
           created_at_ms, authorization, envelope, hash, dispatch, closed) VALUES (?, ?, ?, ?, NULL, 'unresolved', ?, ?, NULL, NULL, NULL, 'outcome-unknown', NULL)`)
           .run(attemptId, tenantId, legacy.invoiceId, legacy.digest, operation, atMs);
