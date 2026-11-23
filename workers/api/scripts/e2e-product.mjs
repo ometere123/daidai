@@ -83,6 +83,10 @@ export async function exerciseProduct({ browser, base, invitations, check, servi
     await p.getByText(/These payment instructions are unavailable/).waitFor();
     check('P11 revoked capability immediately loses access', !(await p.getByRole('heading', { name: 'Committed invoice' }).count()));
 
+    await m.goto(base + '/activity');
+    check('P13 activity uses the authorized projection and identifies evidence gaps', /Settlement activity/.test(await body(m)) &&
+      /Not settled/.test(await body(m)) && !(await body(m)).includes('Demo workspace'));
+    await m.goto(invoice.href);
     await submit(m, 'Cancel invoice');
     await m.getByRole('heading', { name: 'Cancelled' }).waitFor();
     check('P11 cancellation retains committed revision history', /Revision 3 · committed/.test(await body(m)) && /Revision 4 · cancelled/.test(await body(m)));
