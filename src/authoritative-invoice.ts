@@ -1,4 +1,4 @@
-import { chain, cngn, commit, usdt, type Invoice } from './invoice.ts';
+import { chain, cngn, commit, usdt, type Invoice } from './invoice-core.ts';
 import { isAttested } from './evidence-attestation.ts';
 import type { AttemptLineage, AuthorizationFingerprint } from './attempt-lineage.ts';
 

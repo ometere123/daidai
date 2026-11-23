@@ -5,6 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { verifyFinal } from './lineage-fixtures.ts';
 import { DatabaseSync } from 'node:sqlite';
 import { AttemptLineageReader, AttemptLineageStore, envelopeOf, type NewAttempt } from '../src/attempt-lineage.ts';
 import { cngn, reactor } from '../src/invoice.ts';
@@ -32,7 +33,7 @@ const claim = (op: 'conversion' | 'payout', id: string, patch: Partial<NewAttemp
 });
 function finalize(store: AttemptLineageStore, id: string, hash: string) {
   store.recordHash(id, hash, 1_000_100);
-  store.appendVerification(id, 1_000_200, 'verified-final', 'transaction-verifier');
+  verifyFinal(store, id, 1_000_200);
   store.close(id, 'verified-final', 1_000_300, 'ops-reviewer');
 }
 const rawInsert = (verb: string, id: string, op: string, hash: string | null = null, tenant = key.tenantId, invoice = key.invoiceId) =>
@@ -97,7 +98,7 @@ test('verified-final closure needs a recorded hash and an independent verified-f
   for (const result of ['mismatch', 'not-found', 'not-final'] as const) store.appendVerification('pay-1', 1_000_150, result, 'transaction-verifier');
   // A verified-final event on a *different* attempt does not count.
   store.recordHash('conv-1', h(2), 1_000_160);
-  store.appendVerification('conv-1', 1_000_170, 'verified-final', 'transaction-verifier');
+  verifyFinal(store, 'conv-1', 1_000_170);
   const before = snapshot();
   assert.throws(() => store.close('pay-1', 'verified-final', 1_000_200, 'ops-reviewer'), /independent verified-final verification/);
   assert.throws(() => store.close('pay-1', 'verified-final', 1_000_200, ''), /accountable operator/);

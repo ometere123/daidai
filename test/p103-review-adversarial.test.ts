@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { verifyFinal } from './lineage-fixtures.ts';
 import { DatabaseSync } from 'node:sqlite';
 import { AttemptLineageReader, AttemptLineageStore, envelopeOf, type NewAttempt } from '../src/attempt-lineage.ts';
 import { selectAttempt } from '../src/authoritative-invoice.ts';
@@ -35,7 +36,7 @@ function snap(file: string) {
 function finalize(store: AttemptLineageStore, id = 'pay-1', h = hashA, p: Partial<NewAttempt> = {}) {
   store.recordAttempt(claim({ attemptId: id, ...p }));
   store.recordHash(id, h, 1_000_100);
-  store.appendVerification(id, 1_000_200, 'verified-final', 'transaction-verifier');
+  verifyFinal(store, id, 1_000_200);
   store.close(id, 'verified-final', 1_000_300, 'ops-reviewer');
 }
 const cols = `(attempt_id, tenant_id, invoice_id, digest, recorded_revision, lineage, operation, created_at_ms, authorization, envelope, hash, dispatch, closed)`;
@@ -85,10 +86,16 @@ test('key dodges: revision/legacy blocked; other operation allowed; case variant
   assert.deepEqual(reader.attempts(base, 'payout').map(a => a.id), ['pay-1']);
 });
 
-test('policy: a NEW digest for the same invoice gets a fresh, unblocked payout attempt', t => {
-  const { store } = fresh(t);
+test('policy (P10.4): a NEW digest for the same invoice cannot pay a finalized payout again', t => {
+  const { store, raw, file } = fresh(t);
   finalize(store);
-  assert.equal(store.recordAttempt(claim({ attemptId: 'pay-d2', digest: digest2 })), 'created');
+  const before = snap(file);
+  assert.throws(() => store.recordAttempt(claim({ attemptId: 'pay-d2', digest: digest2 })), /this operation is already finalized/);
+  assert.throws(() => raw().prepare(`INSERT INTO attempts (attempt_id, tenant_id, invoice_id, digest, recorded_revision, lineage, operation,
+    created_at_ms, authorization, envelope, hash, dispatch, closed) SELECT 'pay-raw', tenant_id, invoice_id, ?, recorded_revision, lineage,
+    operation, created_at_ms, authorization, envelope, NULL, 'claimed', NULL FROM attempts WHERE attempt_id = 'pay-1'`).run(digest2),
+    /open or finalized/);
+  assert.equal(snap(file), before);
 });
 
 // 3. reconciled-not-landed.
@@ -141,7 +148,7 @@ test('verified-final requires hash and a verified-final verification of the same
   store.recordAttempt(claim());
   store.recordAttempt(claim({ attemptId: 'other-1', invoiceId: 'invoice-b' }));
   // (Lead, after fixing F1) a verdict can no longer be recorded before a hash exists.
-  assert.throws(() => store.appendVerification('pay-1', 1_000_050, 'verified-final', 'v'), /verification requires a recorded transaction hash/);
+  assert.throws(() => store.appendVerification('pay-1', 1_000_050, 'verified-final' as 'mismatch', 'v'), /only be recorded from attested evidence/);
   let before = snap(file);
   assert.throws(() => store.close('pay-1', 'verified-final', 1_000_300, 'ops'), /verified-final requires a recorded transaction hash/);
   assert.throws(() => raw().prepare(`UPDATE attempts SET closed = 'verified-final' WHERE attempt_id = 'pay-1'`).run(), /verified-final requires a recorded transaction hash/);
@@ -162,15 +169,15 @@ test('verified-final requires hash and a verified-final verification of the same
 test('FIXED (re-review F1): verification is bound to the recorded hash and only the latest verdict counts', t => {
   const { store, raw, file } = fresh(t);
   store.recordAttempt(claim());
-  assert.throws(() => store.appendVerification('pay-1', 1_000_050, 'verified-final', 'v'), /verification requires a recorded transaction hash/);
+  assert.throws(() => store.appendVerification('pay-1', 1_000_050, 'verified-final' as 'mismatch', 'v'), /only be recorded from attested evidence/);
   store.recordHash('pay-1', hashA, 1_000_100);
-  store.appendVerification('pay-1', 1_000_120, 'verified-final', 'v');
+  verifyFinal(store, 'pay-1', 1_000_120);
   store.appendVerification('pay-1', 1_000_150, 'mismatch', 'v');       // latest verdict contradicts
   const before = snap(file);
   assert.throws(() => store.close('pay-1', 'verified-final', 1_000_300, 'ops'), /the latest verdict, for the recorded hash/);
   assert.throws(() => raw().prepare(`UPDATE attempts SET closed = 'verified-final' WHERE attempt_id = 'pay-1'`).run(), /latest independent verdict for the recorded hash/);
   assert.equal(snap(file), before);
-  store.appendVerification('pay-1', 1_000_200, 'verified-final', 'v');
+  verifyFinal(store, 'pay-1', 1_000_200);
   store.close('pay-1', 'verified-final', 1_000_300, 'ops');
 });
 

@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { verifyFinal } from './lineage-fixtures.ts';
 import { DatabaseSync } from 'node:sqlite';
 import { AttemptLineageReader, AttemptLineageStore, envelopeOf, type NewAttempt } from '../src/attempt-lineage.ts';
 import { isAttested } from '../src/evidence-attestation.ts';
@@ -31,7 +32,7 @@ test('a claimed attempt keeps its recorded revision and identity; history is app
   assert.equal(store.recordAttempt(claim()), 'created');
   store.recordHash('conv-1', hashA, 1_000_100);
   store.appendVerification('conv-1', 1_000_200, 'not-final', 'transaction-verifier');
-  store.appendVerification('conv-1', 1_000_300, 'verified-final', 'transaction-verifier');
+  verifyFinal(store, 'conv-1', 1_000_300);
   const reader = new AttemptLineageReader(file); t.after(() => reader.close());
   const [a] = reader.attempts(base, 'conversion');
   assert(isAttested(a));
@@ -105,7 +106,7 @@ test('identity, closure and history are immutable at the database level', t => {
   const { file, store, cleanup } = fresh(); t.after(cleanup);
   store.recordAttempt(claim());
   store.recordHash('conv-1', hashA, 1_000_050);
-  store.appendVerification('conv-1', 1_000_060, 'verified-final', 'transaction-verifier');
+  verifyFinal(store, 'conv-1', 1_000_060);
   store.close('conv-1', 'verified-final', 1_000_100, 'ops-reviewer');
   const raw = new DatabaseSync(file); t.after(() => raw.close());
   assert.throws(() => raw.exec("UPDATE attempts SET recorded_revision = 99 WHERE attempt_id = 'conv-1'"), /immutable/);

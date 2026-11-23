@@ -23,7 +23,9 @@
  */
 import { createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
-import { attest } from './evidence-attestation.ts';
+import { attest, isAttested } from './evidence-attestation.ts';
+import { LINEAGE_SCHEMA_SQL } from './lineage-schema.ts';
+import type { CanonicalBlockObservation, ObservedTransaction } from './authoritative-invoice.ts';
 
 export type AttemptOperation = 'conversion' | 'payout';
 export type AuthorizationFingerprint = Readonly<{ digest: string; approvalSigner: string; consentSigner: string; expiresAtMs: number }>;
@@ -56,77 +58,8 @@ export const envelopeOf = (tx: Readonly<{ chainId: number; to: string; data: str
   dataSha256: createHash('sha256').update(tx.data.toLowerCase()).digest('hex'),
 });
 
-const schema = `
-CREATE TABLE IF NOT EXISTS attempts (
-  attempt_id TEXT PRIMARY KEY,
-  tenant_id TEXT NOT NULL, invoice_id TEXT NOT NULL, digest TEXT NOT NULL,
-  recorded_revision INTEGER, lineage TEXT NOT NULL CHECK (lineage IN ('recorded', 'unresolved')),
-  operation TEXT NOT NULL CHECK (operation IN ('conversion', 'payout')),
-  created_at_ms INTEGER NOT NULL, authorization TEXT, envelope TEXT,
-  hash TEXT, dispatch TEXT NOT NULL CHECK (dispatch IN ('claimed', 'hash-recorded', 'outcome-unknown')),
-  closed TEXT CHECK (closed IS NULL OR closed IN ('verified-final', 'reconciled-not-landed')),
-  CHECK ((lineage = 'recorded') = (recorded_revision IS NOT NULL AND authorization IS NOT NULL AND envelope IS NOT NULL))
-);
-CREATE UNIQUE INDEX IF NOT EXISTS one_open_attempt ON attempts (tenant_id, invoice_id, digest, operation) WHERE closed IS NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS unique_hash ON attempts (hash) WHERE hash IS NOT NULL;
-CREATE TABLE IF NOT EXISTS attempt_events (
-  seq INTEGER PRIMARY KEY AUTOINCREMENT,
-  attempt_id TEXT NOT NULL REFERENCES attempts (attempt_id),
-  kind TEXT NOT NULL CHECK (kind IN ('claimed', 'hash-recorded', 'outcome-unknown', 'verification', 'reconciliation', 'legacy-import', 'closed')),
-  at_ms INTEGER NOT NULL, detail TEXT NOT NULL
-);
--- INSERT OR REPLACE deletes the conflicting row without firing DELETE/UPDATE triggers, so block it at insert time.
-CREATE TRIGGER IF NOT EXISTS attempt_no_replace BEFORE INSERT ON attempts
-  WHEN EXISTS (SELECT 1 FROM attempts WHERE attempt_id = NEW.attempt_id)
-  BEGIN SELECT RAISE(ABORT, 'attempt identity is immutable'); END;
-CREATE TRIGGER IF NOT EXISTS events_no_replace BEFORE INSERT ON attempt_events
-  WHEN NEW.seq IS NOT NULL AND EXISTS (SELECT 1 FROM attempt_events WHERE seq = NEW.seq)
-  BEGIN SELECT RAISE(ABORT, 'attempt history is append-only'); END;
-CREATE TRIGGER IF NOT EXISTS closed_attempt_frozen BEFORE UPDATE OF hash, dispatch ON attempts
-  WHEN OLD.closed IS NOT NULL
-  BEGIN SELECT RAISE(ABORT, 'closed attempts are frozen'); END;
--- No-duplicate-payment invariant: an open or verified-final attempt blocks every further attempt for the operation.
-CREATE TRIGGER IF NOT EXISTS operation_open_or_final BEFORE INSERT ON attempts
-  WHEN EXISTS (SELECT 1 FROM attempts WHERE tenant_id = NEW.tenant_id AND invoice_id = NEW.invoice_id AND digest = NEW.digest
-    AND operation = NEW.operation AND (closed IS NULL OR closed = 'verified-final'))
-  BEGIN SELECT RAISE(ABORT, 'an attempt for this operation is open or finalized'); END;
-CREATE TRIGGER IF NOT EXISTS attempt_inserted_open BEFORE INSERT ON attempts WHEN NEW.closed IS NOT NULL
-  BEGIN SELECT RAISE(ABORT, 'attempts are recorded open'); END;
-CREATE TRIGGER IF NOT EXISTS hash_no_replace_insert BEFORE INSERT ON attempts
-  WHEN NEW.hash IS NOT NULL AND EXISTS (SELECT 1 FROM attempts WHERE hash = NEW.hash)
-  BEGIN SELECT RAISE(ABORT, 'transaction hash already belongs to another attempt'); END;
-CREATE TRIGGER IF NOT EXISTS hash_no_replace_update BEFORE UPDATE OF hash ON attempts
-  WHEN NEW.hash IS NOT NULL AND EXISTS (SELECT 1 FROM attempts WHERE hash = NEW.hash AND attempt_id <> OLD.attempt_id)
-  BEGIN SELECT RAISE(ABORT, 'transaction hash already belongs to another attempt'); END;
--- Deferred until authoritative reconciliation infrastructure exists. Fail closed: never prove non-execution by assertion.
-CREATE TRIGGER IF NOT EXISTS reconciled_not_landed_disabled BEFORE UPDATE OF closed ON attempts
-  WHEN NEW.closed = 'reconciled-not-landed'
-  BEGIN SELECT RAISE(ABORT, 'reconciled-not-landed closure is disabled until authoritative reconciliation exists'); END;
-CREATE TRIGGER IF NOT EXISTS verified_final_requires_hash BEFORE UPDATE OF closed ON attempts
-  WHEN NEW.closed = 'verified-final' AND OLD.hash IS NULL
-  BEGIN SELECT RAISE(ABORT, 'verified-final requires a recorded transaction hash'); END;
--- verified-final must rest on the latest independent verdict for the recorded hash (raw SQL included).
-CREATE TRIGGER IF NOT EXISTS verified_final_requires_evidence BEFORE UPDATE OF closed ON attempts
-  WHEN NEW.closed = 'verified-final' AND OLD.hash IS NOT NULL AND (
-    (SELECT json_extract(detail, '$.result') FROM attempt_events WHERE attempt_id = OLD.attempt_id AND kind = 'verification' ORDER BY seq DESC LIMIT 1) IS NOT 'verified-final'
-    OR (SELECT json_extract(detail, '$.hash') FROM attempt_events WHERE attempt_id = OLD.attempt_id AND kind = 'verification' ORDER BY seq DESC LIMIT 1) IS NOT OLD.hash)
-  BEGIN SELECT RAISE(ABORT, 'verified-final requires the latest independent verdict for the recorded hash'); END;
-CREATE TRIGGER IF NOT EXISTS attempt_identity_immutable BEFORE UPDATE OF
-  attempt_id, tenant_id, invoice_id, digest, recorded_revision, lineage, operation, created_at_ms, authorization, envelope ON attempts
-  BEGIN SELECT RAISE(ABORT, 'attempt identity is immutable'); END;
-CREATE TRIGGER IF NOT EXISTS attempt_hash_set_once BEFORE UPDATE OF hash ON attempts
-  WHEN OLD.hash IS NOT NULL AND NEW.hash IS NOT OLD.hash
-  BEGIN SELECT RAISE(ABORT, 'attempt hash is immutable'); END;
-CREATE TRIGGER IF NOT EXISTS attempt_close_once BEFORE UPDATE OF closed ON attempts
-  WHEN OLD.closed IS NOT NULL AND NEW.closed IS NOT OLD.closed
-  BEGIN SELECT RAISE(ABORT, 'attempt closure is final'); END;
-CREATE TRIGGER IF NOT EXISTS attempt_no_delete BEFORE DELETE ON attempts
-  BEGIN SELECT RAISE(ABORT, 'attempts are retained'); END;
-CREATE TRIGGER IF NOT EXISTS events_append_only_update BEFORE UPDATE ON attempt_events
-  BEGIN SELECT RAISE(ABORT, 'attempt history is append-only'); END;
-CREATE TRIGGER IF NOT EXISTS events_append_only_delete BEFORE DELETE ON attempt_events
-  BEGIN SELECT RAISE(ABORT, 'attempt history is append-only'); END;
-`;
+// The schema lives in lineage-schema.ts and is shared with the Cloudflare D1 adapter.
+const schema = LINEAGE_SCHEMA_SQL;
 
 function validateNew(a: NewAttempt) {
   check(idPattern.test(a.attemptId) && idPattern.test(a.tenantId) && idPattern.test(a.invoiceId), 'invalid attempt identity');
@@ -173,8 +106,9 @@ export class AttemptLineageStore {
         check(same, 'attempt id conflict');
         return 'existing';
       }
-      const blocking = this.db.prepare(`SELECT closed FROM attempts WHERE tenant_id = ? AND invoice_id = ? AND digest = ? AND operation = ?
-        AND (closed IS NULL OR closed = 'verified-final') LIMIT 1`).get(a.tenantId, a.invoiceId, a.digest, a.operation) as { closed: string | null } | undefined;
+      // Per invoice operation, across commitments: a new digest never reopens a finalized or open operation.
+      const blocking = this.db.prepare(`SELECT closed FROM attempts WHERE tenant_id = ? AND invoice_id = ? AND operation = ?
+        AND (closed IS NULL OR closed = 'verified-final') ORDER BY closed IS NULL LIMIT 1`).get(a.tenantId, a.invoiceId, a.operation) as { closed: string | null } | undefined;
       if (blocking) throw Error(blocking.closed === 'verified-final' ? 'this operation is already finalized' : 'an attempt for this operation is already open');
       try {
         this.db.prepare(`INSERT INTO attempts (attempt_id, tenant_id, invoice_id, digest, recorded_revision, lineage, operation,
@@ -213,16 +147,45 @@ export class AttemptLineageStore {
   }
 
   /** Independent verification results are history, never a rewrite of the attempt. */
-  appendVerification(attemptId: string, atMs: number, result: 'verified-final' | 'mismatch' | 'not-found' | 'not-final', verifier: string) {
-    check(['verified-final', 'mismatch', 'not-found', 'not-final'].includes(result) && idPattern.test(verifier), 'invalid verification');
+  /**
+   * Records a *negative or inconclusive* verdict (mismatch, not-found, not-final). These can only restrict.
+   * 'verified-final' is refused here: a caller-supplied verifier name is not evidence. Use recordVerifiedFinal().
+   */
+  appendVerification(attemptId: string, atMs: number, result: 'mismatch' | 'not-found' | 'not-final', verifier: string) {
+    check(['mismatch', 'not-found', 'not-final'].includes(result), 'verified-final can only be recorded from attested evidence');
+    check(idPattern.test(verifier), 'invalid verification');
     this.tx(() => {
       const r = this.row(attemptId);
       check(r, 'unknown attempt');
-      // A verdict is about a specific transaction: it can only be recorded once a hash exists, and it names that hash.
       check(r.hash !== null, 'verification requires a recorded transaction hash');
       this.event(attemptId, 'verification', atMs, { result, verifier, hash: r.hash });
     });
   }
+
+  /**
+   * Records 'verified-final' only from evidence produced in-process by the trusted adapters (attested transaction and
+   * canonical-block observations), bound to this attempt's id, hash, recorded revision, commitment and operation, with
+   * the block canonical and finalized. Raw SQL writers remain inside the trust boundary (see P10.4 doc).
+   */
+  recordVerifiedFinal(attemptId: string, tx: ObservedTransaction, canonical: CanonicalBlockObservation, atMs: number) {
+    check(isAttested(tx) && isAttested(canonical), 'verified-final requires attested evidence');
+    this.tx(() => {
+      const r = this.row(attemptId);
+      check(r, 'unknown attempt');
+      check(r.hash !== null && r.lineage === 'recorded', 'verification requires a recorded transaction hash');
+      check(tx.source === 'transaction-verifier' && tx.success === true && tx.attemptId === attemptId && tx.hash === r.hash &&
+        tx.revision === r.recorded_revision && tx.tenantId === r.tenant_id && tx.invoiceId === r.invoice_id &&
+        tx.digest === r.digest && tx.operation === r.operation, 'evidence does not belong to this attempt');
+      check(canonical.source === 'canonical-chain-reader' && canonical.chainId === tx.chainId &&
+        canonical.blockNumber === tx.blockNumber && canonical.blockHash === tx.blockHash &&
+        BigInt(canonical.finalizedBlockNumber) >= BigInt(canonical.blockNumber), 'evidence is not canonical and finalized');
+      this.event(attemptId, 'verification', atMs, {
+        result: 'verified-final', verifier: 'attested-evidence', hash: r.hash, blockNumber: tx.blockNumber, blockHash: tx.blockHash,
+        finalizedBlockNumber: canonical.finalizedBlockNumber,
+      });
+    });
+  }
+
 
   /**
    * Closes an attempt as 'verified-final': terminal for its operation, so it can only ever block further attempts.

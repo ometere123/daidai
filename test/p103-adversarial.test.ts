@@ -7,6 +7,7 @@ import { mkdirSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
+import { verifyFinal } from './lineage-fixtures.ts';
 import { encodeAbiParameters, encodeEventTopics, erc20Abi, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { chain, cngn, commit, reactor, tag, usdt, type Invoice } from '../src/invoice.ts';
@@ -280,7 +281,7 @@ test('lineage: SQL cannot mutate identity, rewrite hash, reopen, or delete', () 
     "UPDATE attempts SET lineage = 'unresolved'", "UPDATE attempts SET authorization = '{}'", 'UPDATE attempts SET hash = NULL',
     `UPDATE attempts SET hash = '${hashes.conversion}'`, 'DELETE FROM attempts', 'DELETE FROM attempt_events', "UPDATE attempt_events SET kind = 'closed'",
   ]) assert.throws(() => s.db.exec(sql), sql);
-  s.appendVerification('att-1', 1_002, 'verified-final', 'transaction-verifier');
+  verifyFinal(s, 'att-1', 1_002);
   s.close('att-1', 'verified-final', 1_003, 'op-1');
   assert.throws(() => s.db.exec('UPDATE attempts SET closed = NULL'), /attempt closure is final/);
   assert.throws(() => s.close('att-1', 'reconciled-not-landed', 1_004, 'op-1'));
