@@ -76,6 +76,19 @@ test('cross-tenant and same-tenant viewer denial, and local gate before private 
   assert.equal((await request(save, seeded.tokens.demo, 'example.invalid')).status, 404);
 });
 
+test('identical invoice aliases and terms in two tenants commit to different digests', async () => {
+  const invoice = id(), draft = terms();
+  const commitIn = async (token: string) => {
+    assert.equal((await request({ kind: 'save', id: invoice, key: id(), expected: 0, draft }, token)).status, 200);
+    const response = await request({ kind: 'commit', id: invoice, key: id(), expected: 1 }, token);
+    assert.equal(response.status, 200);
+    const digest = response.value?.revisions[0].digest;
+    assert.match(digest ?? '', /^[0-9a-f]{64}$/);
+    return digest;
+  };
+  assert.notEqual(await commitIn(seeded.tokens.demo), await commitIn(seeded.tokens.viewerB));
+});
+
 test('share reveals one commitment only, is revocable, and cancellation invalidates existing links', async () => {
   const invoice = id(), code = randomToken(), alternate = randomToken();
   await request({ kind: 'save', id: invoice, key: id(), expected: 0, draft: terms() });

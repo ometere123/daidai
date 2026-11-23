@@ -1,3 +1,4 @@
+import { simulatePayoutObservation } from '../../../../../src/product-observation';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { cngn, usdt } from '../../../../../src/invoice-core';
@@ -17,6 +18,7 @@ export default async function PayerReview({ searchParams }: { searchParams: Prom
   const reply = code ? await productCall({ kind: 'redeem', code }, token) : null;
   const invoice = reply?.kind === 'revision' ? reply.revisions[0] : undefined;
   const quote = invoice ? await preparePreview(invoice, simulatedTextilePreview, Date.now) : null;
+  const observation = invoice && scenario === 'unknown' ? simulatePayoutObservation(invoice, { kind: 'unknown' }) : null;
   return <>
     <h1 className="title">Payer review</h1>
     <p className="meta">Isolated local workspace · no funds move</p>
@@ -45,7 +47,7 @@ export default async function PayerReview({ searchParams }: { searchParams: Prom
           <li>Payout: a separate exact cNGN transfer to the committed recipient.</li></ol>
         <p>No finalized conversion or payout evidence is attached to this invoice.</p>
         <a href="/pay?scenario=unknown">View a simulated unknown payout</a>
-        {scenario === 'unknown' && <div role="status"><strong>Simulation · Needs reconciliation</strong>
+        {observation?.state === 'reconciliation-required' && <div role="status"><strong>Simulation · Needs reconciliation</strong>
           <p>The simulated payout outcome is unknown. A new attempt stays blocked until authoritative reconciliation, fresh preflight and explicit approval.</p></div>}
       </section>
     </>}

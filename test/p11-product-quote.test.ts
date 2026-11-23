@@ -1,3 +1,4 @@
+import { simulatePayoutObservation } from '../src/product-observation.ts';
 import { textilePreviewSource } from '../src/textile-preview-source.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
@@ -51,4 +52,14 @@ test('preview transport is pinned to the credentialless non-reserving endpoint',
 test('preview transport fails closed on oversized responses', async () => {
   const source = textilePreviewSource(async () => new Response('a'.repeat(32_769)));
   assert.equal((await preparePreview(invoice, source, () => now)).kind, 'unavailable');
+});
+
+
+test('simulated payout cannot become settled evidence, including a matching example', () => {
+  const unknown = simulatePayoutObservation(invoice, { kind: 'unknown' });
+  assert.equal(unknown.state, 'reconciliation-required');
+  const transfer = { token: 'cNGN' as const, to: invoice.recipient, amount: invoice.target };
+  assert.equal(simulatePayoutObservation(invoice, { kind: 'seen', transfer: { ...transfer, to: invoice.approver } }).state, 'reconciliation-required');
+  assert.deepEqual(simulatePayoutObservation(invoice, { kind: 'seen', transfer }), { provenance: 'simulation',
+    state: 'example-matches', recipient: invoice.recipient, target: invoice.target });
 });

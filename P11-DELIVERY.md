@@ -62,3 +62,10 @@ Next is dependency remediation and final security/operational review.
 `820e4ac` added the browser integration. The next changes bind share capability generation to server-side entropy and the authenticated session, narrow merchant checks on D1 mutations, and apply explicit private/no-store and no-referrer headers on product views. The browser test now checks the narrow viewport for overflow. The extra fixed-endpoint Textile transport raises the quote and transport contract suite to 9/9. Its credentialless external probe returned unavailable, so the demo remains deterministic.
 
 The earlier CI run exposed a NodeNext import-resolution mismatch. The root-compiled server imports now use explicit TypeScript extensions. Final CI and the updated dependency validation are pending. Next actions are the Worker toolchain audit, rerunning the integrated flow and recording exact-head CI.
+
+
+## Checkpoint 7
+
+`22431db` hardened the product route boundary. This checkpoint binds new product digests to tenant and invoice identity, adds a typed simulated observation that cannot produce a settled result, and documents the demo, isolated migration and launch runbook in P11-DEMO-AND-OPERATIONS.md.
+
+The Worker upgrades Miniflare, esbuild and viem, removes unused Wrangler from the local dependency graph, and pins patched sharp, undici and Zod versions. The Worker npm audit on the updated lock reports zero findings. The P11 D1 suite passed 7/7 on Miniflare 4 before the patched transitive lock was applied. The focused quote, transport and observation suite passed 10/10. The browser flow passed 28/28 before the final UI hardening. Full final verification uses the new exact-head Actions run; the public Celo and Textile probes remain unqualified. Next action is to verify all jobs and review readiness without enabling product routes outside isolated storage.
