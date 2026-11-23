@@ -32,3 +32,8 @@ Celo head ea19f31. The official RFQ documentation distinguishes non-reserving pr
 ## Demo checkpoint
 
 Textile head 1d11279. Added one local command with separate product and public-chain modes. Product mode builds Next, reseeds disposable D1, reapplies the isolated migration and starts authenticated Chromium. Chain mode performs read-only historical registration observation. The full-stack run is in progress. Next: harden the evidence and provider failure paths, then run exact-head CI.
+
+
+## Security and CI checkpoint
+
+Demo head 538a15c. Local Chromium passed 29/29 checks with the D1 distributed limits and no wallet calls. Receipt verification now rejects malformed log indices and resamples canonical identity before attesting. Preparation rechecks balance freshness after simulation. CI runs the launch configuration check before strict TypeScript and the full regression matrix. The provider probe stays outside CI. Next: document operational procedures, verify exact-head CI and record any remaining external blockers.

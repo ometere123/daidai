@@ -34,6 +34,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
+      - run: node scripts/p12-config.mjs
       - run: npm run typecheck
       - run: npm test
 

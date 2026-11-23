@@ -12,7 +12,7 @@ type Policy = { code: string; swap: FeeCeilings; payout: FeeCeilings };
 
 function scope(raw: Invoice, proof: VerifiedAuthorization, now: number) {
   const { invoice, digest } = commit(raw);
-  check(isVerifiedAuthorization(proof) && proof.digest === digest && proof.approver === invoice.approver &&
+  check(Number.isSafeInteger(now) && isVerifiedAuthorization(proof) && proof.digest === digest && proof.approver === invoice.approver &&
     proof.recipient === invoice.recipient && proof.expires === invoice.expires && now < invoice.expires, 'missing current approval or consent');
   return { invoice, digest };
 }
@@ -63,6 +63,7 @@ export async function reviewConversion(raw: Invoice, proof: VerifiedAuthorizatio
   const swap = { ...quote.transactions.swap, data: tag(quote.transactions.swap.data, policy.code) };
   const candidate = await simulate(ports, reviewBound(invoice, swap, 'swap', debit), policy.swap, digest);
   fresh();
+  assertBalances(invoice, funds, ports.clock());
   return { kind: 'review', candidate, deadline, fee: atomic(quote.feeAmount), debit } as const;
 }
 
@@ -84,6 +85,7 @@ export async function reviewPayout(raw: Invoice, proof: VerifiedAuthorization, c
   const data = encodeFunctionData({ abi: erc20Abi, functionName: 'transfer', args: [invoice.recipient as Hex, atomic(invoice.buyAmount)] });
   const candidate = await simulate(ports, reviewBound(invoice, { to: invoice.buy, data: tag(data, policy.code), value: '0', chainId: invoice.chain }, 'payout', 0n), policy.payout, digest);
   scope(raw, proof, ports.clock());
+  assertBalances(invoice, funds, ports.clock());
   return candidate;
 }
 

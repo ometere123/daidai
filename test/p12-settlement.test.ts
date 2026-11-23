@@ -69,6 +69,11 @@ test('firm fixture interface binds exact output and prepares conversion and sepa
   rpc.mine(payoutHash, payout.tx, invoice.recipient as Hex, target - 1n);
   assert.equal(await verifyPayout(payout, payoutHash, rpc.reader), null);
   rpc.mine(payoutHash, payout.tx, invoice.recipient as Hex);
+  const original = rpc.receipts.get(payoutHash)!;
+  const logs = original.logs as { logIndex: string }[];
+  rpc.receipts.set(payoutHash, { ...original, logs: logs.map(log => ({ ...log, logIndex: '0x00' })) });
+  assert.equal(await verifyPayout(payout, payoutHash, rpc.reader), null);
+  rpc.receipts.set(payoutHash, original);
   assert(await verifyPayout(payout, payoutHash, rpc.reader));
   assert(!rpc.calls.some(method => /send|sign/i.test(method)));
 });

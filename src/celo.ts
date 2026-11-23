@@ -76,14 +76,18 @@ export class CeloReader {
     const canonical = await this.#rpc('eth_getBlockByNumber', [receipt.blockNumber, false]) as Block | null;
     if (!canonical || !finalized || canonical.number !== receipt.blockNumber ||
       !equal(canonical.hash, receipt.blockHash) || quantity(finalized.number) < quantity(receipt.blockNumber)) return;
-    const indices = new Set<string>();
+    if (!Array.isArray(receipt.logs)) return;
+    const indices = new Set<bigint>();
     for (const log of receipt.logs) {
-      if (!equal(log.transactionHash, plan.hash) || !equal(log.blockHash, receipt.blockHash) ||
-        typeof log.logIndex !== 'string' || indices.has(log.logIndex)) return;
-      indices.add(log.logIndex);
+      let index: bigint;
+      try { index = quantity(log.logIndex); } catch { return; }
+      if (!equal(log.transactionHash, plan.hash) || !equal(log.blockHash, receipt.blockHash) || indices.has(index)) return;
+      indices.add(index);
     }
     const { debit, received, unexpected } = accountTransferLogs(receipt.logs, plan);
     if (unexpected || debit !== plan.debit || received !== plan.amount) return;
+    const confirmed = await this.#rpc('eth_getBlockByNumber', [receipt.blockNumber, false]) as Block | null;
+    if (!confirmed || confirmed.number !== receipt.blockNumber || !equal(confirmed.hash, receipt.blockHash)) return;
     const result = Object.freeze({ hash: plan.hash, receipt: Object.freeze({
       ok: true, finalized: true, chain: 42220, from: plan.sender, to: plan.recipient,
       token: plan.buyToken, amount: received.toString(), debit: debit.toString(),
