@@ -60,6 +60,7 @@ export type Deps = Readonly<{
   /** Optional read-only chain reader (chain-config.ts). Absent by default: operations stay unknown. */
   chain?: () => ChainConfig | undefined;
   localProduct?: boolean;
+  distributedRate?: (scope: 'service' | 'invitation', now: number) => Promise<boolean>;
   /** Probability source for opportunistic nonce pruning (default Math.random; prune when < PRUNE_PROBABILITY). */
   random?: () => number;
   /** Override for the stricter invitation-exchange bucket (default: one per isolate). */
@@ -181,11 +182,13 @@ export async function handle(request: Request, deps: Deps): Promise<Response> {
       if (claim === 'replayed') return fail('unauthenticated-service');
       if (claim !== 'claimed') return fail('unavailable');
       if ((deps.random ?? Math.random)() < PRUNE_PROBABILITY) { try { await pruneNonces(db, nowMs); } catch { /* best effort */ } }
+      if (deps.distributedRate && !await deps.distributedRate('service', nowMs)) return fail('rate-limited');
       if (!deps.limiter.take(keyId, nowMs)) return fail('rate-limited');
       if (typeof parsed === 'string') return fail(parsed); // e.g. malformed viewer token: same 404 as any denial
       if (parsed.route === 'health') return respond(health());
       if (parsed.route === 'session-create') {
         if (!(deps.sessionLimiter ?? sessionLimiter).take(keyId, nowMs)) return fail('rate-limited');
+        if (deps.distributedRate && !await deps.distributedRate('invitation', nowMs)) return fail('rate-limited');
         const input = parseSessionBody(body);
         if (!input) return fail('invalid-request');
         const issued = await exchangeInvitation(db, input.invitation, nowMs, viewerToken);

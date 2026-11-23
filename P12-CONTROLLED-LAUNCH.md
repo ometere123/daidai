@@ -12,3 +12,7 @@ Base: P11 normal merge a17d5cdf5157a5a4b5247db3c09192a8fa585312. The seven appro
 | Release | Exact-head CI, audits and review gates, no hosting or production migration |
 
 Next: inspect and extend the existing production gates and read-only contracts. No P12 checks have run yet.
+
+## Infrastructure checkpoint
+
+Base checkpoint 4ce96a8 opened draft PR #9. The Worker now fails closed outside the isolated runtime, with public and preview routes disabled in Wrangler. The signed local integration uses an atomic D1 service quota with a separate invitation budget. Config validation checks both hosted defaults and the local-only flags. This checkpoint does not provision anything. Next: exercise D1 contention and define the hosted identity and operator boundaries.
