@@ -20,3 +20,7 @@ Base checkpoint 4ce96a8 opened draft PR #9. The Worker now fails closed outside 
 ## Identity checkpoint
 
 Infrastructure head f74b78d. Added a fail-closed IdP contract with issuer/audience/expiry and tenant membership checks. Operator review additionally requires an independent grant and recent MFA. This is a tested adapter boundary, with no production provider or hosted route. Added D1 budget and hosted shutdown regressions. Next: qualify independent Celo providers and retain their public evidence.
+
+## Celo checkpoint
+
+Identity head 3814c3c. Two deterministic provider-policy tests passed. The live historical probe found matching canonical P08 registration evidence on Forno and Ankr (block 0x4f9cc45, hash 0x1558a6120f0d99bab5b85806a854659407c96dd2ff16c51b79a75453fed5a72b, finalized head 0x4faf163). dRPC returned no receipt and the community endpoint timed out. This qualifies those historical observations only. Proposed policy requires independently operated providers, both canonical and finalized, with disagreement or unavailability blocking promotion. It is not enabled in production. Next: complete the non-dispatching Textile path and rerun the integrated walkthrough.
