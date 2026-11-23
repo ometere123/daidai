@@ -33,7 +33,11 @@ try {
   await wait('http://127.0.0.1:3400/');
   const base = 'http://127.0.0.1:3400';
   const ctx = await browser.newContext();
-  await ctx.addInitScript(() => { window.__walletCalls = 0; window.ethereum = { request() { window.__walletCalls++; throw Error('no'); } }; });
+  let walletCalls = 0;
+  await ctx.exposeFunction('__recordWalletCall', () => { walletCalls++; });
+  await ctx.addInitScript(() => {
+    window.ethereum = { async request() { await window.__recordWalletCall(); throw Error('Wallet unavailable'); } };
+  });
   const page = await ctx.newPage();
 
   await page.goto(base + '/invoices');
@@ -73,7 +77,6 @@ try {
   await page.fill('input[name=invitation]', codes[1]);
   await Promise.all([page.waitForURL(/\/invoices$/), page.click('button[type=submit]')]);
   check('a fresh invitation creates a new session', new URL(page.url()).pathname === '/invoices');
-  check('no wallet-provider calls', (await page.evaluate(() => window.__walletCalls)) === 0);
   await page.goto(base + '/');
   check('fixture demo at / unchanged (Demo workspace strip)', /Demo workspace/.test(await page.textContent('body')));
   const sessionCookie = (await ctx.cookies()).find(c => c.name === '__Host-daidai_session');
@@ -88,6 +91,7 @@ try {
   const r1 = await pp.goto('http://127.0.0.1:3401/invoices');
   const r2 = await pp.goto('http://127.0.0.1:3401/login');
   check('Preview without DAIDAI_PREVIEW_ACCESS: private pages and /login are 404', r1?.status() === 404 && r2?.status() === 404, `${r1?.status()} ${r2?.status()}`);
+  check('no wallet-provider calls across all pages and navigations', walletCalls === 0);
 } finally {
   await browser?.close();
   procs.forEach(kill);

@@ -110,12 +110,12 @@ time-travel/restore semantics.
 
 ## P10.5: sessions, invitations and global replay protection
 
-### Routes (all HMAC-signed over method, path, SHA-256(body) and SHA-256(viewer token); Origin header → 401)
+### Routes (all HMAC-signed over key ID, method, path, timestamp, nonce, SHA-256(body) and SHA-256(viewer token); Origin header → 401)
 
 | Route | Behaviour |
 | --- | --- |
 | `POST /v1/sessions` body `{"invitation":"<code>"}` | Content type must be `application/json` (else 400). Body read with a hard cap of `MAX_BODY_BYTES` (larger, or invalid UTF-8 → 400, before auth). After HMAC + nonce: stricter per-key bucket (429), `parseSessionBody` (400), then one atomic `db.batch`: conditional `UPDATE viewer_invitations SET used_at_ms, session_sha256 … WHERE used_at_ms IS NULL AND expires_at_ms > now` + `INSERT INTO viewer_sessions … SELECT … WHERE session_sha256 = <this token's hash>`. Unknown, used, expired → uniform **403 `invalid-credentials`**. Success → `SessionResponse` with a fresh 256-bit base64url token (stored only as SHA-256), absolute expiry now + 12 h, idle timeout 30 min |
-| `DELETE /v1/sessions/current` (viewer header) | Sets `revoked_at_ms` once. Idempotent; an unknown token also answers `{"kind":"revoked"}` (no oracle). Malformed token → 404 (contract) |
+| `DELETE /v1/sessions/current` (viewer header) | Sets `revoked_at_ms` once. Idempotent; an unknown token also answers `{"kind":"revoked"}` (no oracle). Malformed token → 404 (contract). If D1 cannot acknowledge the write, the server returns 503 and the browser retains its cookie |
 | `GET /v1/invoices` (viewer header) | Permitted invoices of the viewer's tenant (`invoice_permissions` ⨝ `tenant_directory` ⨝ `invoices`, same tenant on every join), `LIMIT MAX_LIST`, ordered by id. Each row's commitment is re-derived with `commit()`; rows whose digest or id do not match are skipped. Returns `{id, revision, targetAtomic: buyAmount, maxDebitAtomic: maxSell}` only, no settlement claims |
 | `GET /v1/invoices/{id}/authoritative` | Unchanged, but the session check is the P10.5 one below |
 
@@ -172,7 +172,7 @@ Codes and tokens are never logged by the Worker (logs carry rid, route, status a
 
 - Replay protection is global (D1), but the rate limiters are still **per isolate**; production needs a platform rate limit.
 - Invitations are an interim identity mechanism (no IdP). There is no in-place token rotation route: a new session comes
-  only from a new invitation (`rotated_from` is reserved).
+  only from a new invitation. Successful login atomically revokes the prior browser session and records its hash in `rotated_from`. An invalid invitation leaves the prior session intact.
 - The Worker never applies the schema; a database without the P10.5 tables answers 503 to every authenticated request.
 - No chain reader by default; the optional hook is untested against live RPC by design.
 - The D1 lineage writer is a test prototype. The only write routes touch authentication tables; no execution service, no wallet and no dispatch.
