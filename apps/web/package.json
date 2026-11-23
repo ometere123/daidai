@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "test:model": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/p10-model.test.mjs",
     "test:browser": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/plumb-browser.test.mjs",
-    "test:p104": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/p104-internal-demo.test.mjs"
+    "test:p104": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/p104-internal-demo.test.mjs",
+    "test:p105": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/p105-auth-flow.test.mjs"
   },
   "dependencies": {
     "@fontsource-variable/schibsted-grotesk": "5.3.0",
