@@ -175,6 +175,7 @@ describe('ADV-1 Worker HTTP boundary', () => {
     const k2 = serviceKey();
     const w2 = await startWorker({ keys: { [k.keyId]: k.secret, [k2.keyId]: k2.secret } });
     try {
+      await applySchema(w2.db); // P10.5: the global nonce store must exist, or every request fails closed with 503
       const nonce = randomNonce();
       const h = await signedHeaders({ ...k, path: '/v1/health', nonce });
       const r1 = await w2.mf.dispatchFetch(BASE + '/v1/health', { headers: h });
@@ -209,7 +210,7 @@ describe('ADV-1 Worker HTTP boundary', () => {
 
   test('rate limit: per key id, applied only after authentication; unauthenticated floods do not drain the bucket', async () => {
     const limiter = new RateLimiter(2, 0);
-    const deps = { repos: () => d1Repositories(db), keys: () => parseServiceKeys(JSON.stringify({ [k.keyId]: k.secret })), audience: AUDIENCE,
+    const deps = { repos: () => d1Repositories(db), db: () => db, keys: () => parseServiceKeys(JSON.stringify({ [k.keyId]: k.secret })), audience: AUDIENCE,
       nonces: new NonceWindow(), limiter, now: () => Date.now(), log: () => {} };
     const call = async (headers: Record<string, string>) => handle(new Request(BASE + '/v1/health', { headers }), deps);
     for (let i = 0; i < 20; i++) assert.equal((await call({ ...await signedHeaders({ ...k, path: '/v1/health' }), [SERVICE_HEADERS.signature]: '0'.repeat(64) })).status, 401);
@@ -277,7 +278,7 @@ function recording(inner: D1Like, log: string[]): D1Like {
 }
 function harness(now: number) {
   const sql: string[] = [], lines: LogLine[] = [];
-  const deps = { repos: () => d1Repositories(recording(db, sql)), keys: () => parseServiceKeys(JSON.stringify({ [k.keyId]: k.secret })),
+  const deps = { repos: () => d1Repositories(recording(db, sql)), db: () => recording(db, sql), keys: () => parseServiceKeys(JSON.stringify({ [k.keyId]: k.secret })),
     audience: AUDIENCE, nonces: new NonceWindow(), limiter: new RateLimiter(), now: () => now, log: (l: LogLine) => lines.push(l) };
   const call = async (id: string, token: string) => {
     const r = await handle(new Request(BASE + ip(id), { headers: await signedHeaders({ ...k, path: ip(id), viewerToken: token, nowMs: now }) }), deps);
@@ -287,7 +288,7 @@ function harness(now: number) {
 }
 const touchesData = (sql: string[]) => sql.filter(q => /FROM (invoices|signatures|attempts|attempt_events)\b/.test(q));
 async function addSession(token: string, viewer: string, tenant: string, authAt: unknown, expires: unknown) {
-  await db.prepare('INSERT INTO viewer_sessions VALUES (?, ?, ?, ?, ?)').bind(await sha256Hex(token), viewer, tenant, authAt, expires).run();
+  await db.prepare('INSERT INTO viewer_sessions (token_sha256, viewer_id, tenant_id, authenticated_at_ms, expires_at_ms) VALUES (?, ?, ?, ?, ?)').bind(await sha256Hex(token), viewer, tenant, authAt, expires).run();
 }
 
 describe('ADV-2 viewer, session and permission', () => {
@@ -331,7 +332,7 @@ describe('ADV-2 viewer, session and permission', () => {
 
   test('token hash: uppercase-hex stored hash never matches; a token differing only in case is a different session', async () => {
     const tok = randomToken();
-    await db.prepare('INSERT INTO viewer_sessions VALUES (?, ?, ?, ?, ?)').bind((await sha256Hex(tok)).toUpperCase(), 'demo-viewer', 'tenant-a', NOW - 1000, NOW + 3600_000).run();
+    await db.prepare('INSERT INTO viewer_sessions (token_sha256, viewer_id, tenant_id, authenticated_at_ms, expires_at_ms) VALUES (?, ?, ?, ?, ?)').bind((await sha256Hex(tok)).toUpperCase(), 'demo-viewer', 'tenant-a', NOW - 1000, NOW + 3600_000).run();
     assert.equal((await harness(NOW).call('inv-a1', tok)).status, 404);
     const lowerVariant = s.tokens.demo.toLowerCase() === s.tokens.demo ? s.tokens.demo.toUpperCase() : s.tokens.demo.toLowerCase();
     assert.equal((await harness(NOW).call('inv-a1', lowerVariant)).status, 404);
@@ -392,7 +393,9 @@ describe('ADV-2 viewer, session and permission', () => {
     for (const [id, tok] of [['inv-a1', s.tokens.demo], ['inv-a2', s.tokens.demo], ['inv-a3', s.tokens.demo], ['inv-b1', s.tokens.demo],
       ['inv-a1', s.tokens.expired], ['inv-t-forged-final', s.tokens.demo]] as const) await h.call(id, tok);
     assert.ok(h.sql.length > 10);
-    for (const q of h.sql) assert.match(q.trimStart(), /^SELECT\b/, q);
+    // P10.5: the only writes are the global nonce claim and the session idle slide (auth tables only, single statements).
+    for (const q of h.sql) assert.match(q.trimStart(), /^SELECT\b|^INSERT INTO service_nonces \(key_id, nonce, seen_at_ms\) VALUES|^UPDATE viewer_sessions SET idle_expires_at_ms = /, q);
+    assert.ok(!h.sql.includes('BATCH'));
   });
 
   test('Worker source: no write statements, no chain reader construction, no request-derived chain config', () => {
@@ -400,8 +403,15 @@ describe('ADV-2 viewer, session and permission', () => {
     for (const f of ['handler.ts', 'index.ts', 'd1-repositories.ts']) {
       const src = readFileSync(join(dir, f), 'utf8');
       assert.doesNotMatch(src, /\b(INSERT|UPDATE|DELETE|DROP|REPLACE|ALTER|CREATE|PRAGMA|ATTACH)\s/i, f);
-      assert.doesNotMatch(src, /readOnlyRpc|transactionVerifier|canonicalBlockReader|\bchain\s*:/, f);
+      // P10.5: the only chain wiring is the env-gated chainFromEnv hook (chain-config.ts), never request-derived.
+      assert.doesNotMatch(src.replace('chain: () => chainFromEnv(env),', ''), /readOnlyRpc|transactionVerifier|canonicalBlockReader|\bchain\s*:/, f);
     }
+    // P10.5 writes live only in d1-auth.ts and target only the authentication tables.
+    const auth = readFileSync(join(dir, 'd1-auth.ts'), 'utf8');
+    const writes = [...auth.matchAll(/\b(INSERT INTO|UPDATE|DELETE FROM)\s+(\w+)/g)];
+    assert.ok(writes.length >= 5);
+    for (const m of writes) assert.match(m[2], /^(viewer_invitations|viewer_sessions|service_nonces)$/, m[0]);
+    assert.doesNotMatch(auth, /\b(DROP|ALTER|CREATE|PRAGMA|ATTACH|REPLACE)\s/i);
     const bundle = readFileSync(fileURLToPath(new URL('../dist/worker.js', import.meta.url)), 'utf8');
     assert.doesNotMatch(bundle, /D1LineageWriter/, 'the prototype writer is not in the Worker bundle');
   });

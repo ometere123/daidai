@@ -81,7 +81,7 @@ export async function seed(db: D1Like, nowMs = Date.now()) {
   }
   const tokens = { demo: randomToken(), viewerB: randomToken(), expired: randomToken(), noPermission: randomToken() };
   const session = async (token: string, viewer: string, tenant: string, expires: number) =>
-    db.prepare('INSERT INTO viewer_sessions VALUES (?, ?, ?, ?, ?)').bind(await sha256Hex(token), viewer, tenant, nowMs - 1000, expires);
+    db.prepare('INSERT INTO viewer_sessions (token_sha256, viewer_id, tenant_id, authenticated_at_ms, expires_at_ms) VALUES (?, ?, ?, ?, ?)').bind(await sha256Hex(token), viewer, tenant, nowMs - 1000, expires);
   stmts.push(await session(tokens.demo, 'demo-viewer', 'tenant-a', nowMs + 8 * 3600_000));
   stmts.push(await session(tokens.viewerB, 'viewer-b', 'tenant-b', nowMs + 8 * 3600_000));
   stmts.push(await session(tokens.expired, 'demo-viewer', 'tenant-a', nowMs - 1));

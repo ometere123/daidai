@@ -172,14 +172,14 @@ describe('C4 misconfiguration fails closed', () => {
       assert.equal(await r.text(), '{"apiVersion":"v1","kind":"error","error":"unavailable"}');
     } finally { await w.mf.dispose(); }
   });
-  test('D1 without schema (storage failure during session lookup) → uniform 404, message not leaked', async () => {
+  test('D1 without schema (nonce store missing) → 503 unavailable, fail closed, message not leaked', async () => {
     const w = await startWorker({ keys: { [k.keyId]: k.secret } });
     try {
       const path = invoicePath('inv-a1');
-      // authenticateViewer() treats a throwing session store as "no viewer", so this fails closed as a denial.
+      // P10.5: the global nonce claim runs before the session lookup; a missing table is an outage → 503, never accepted.
       const r = await w.mf.dispatchFetch(BASE + path, { headers: await signedHeaders({ ...k, path, viewerToken: randomToken() }) });
-      assert.equal(r.status, 404);
-      assert.equal(await r.text(), NOT_FOUND);
+      assert.equal(r.status, 503);
+      assert.equal(await r.text(), '{"apiVersion":"v1","kind":"error","error":"unavailable"}');
     } finally { await w.mf.dispose(); }
   });
 });

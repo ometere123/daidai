@@ -27,7 +27,7 @@ function recording(db: D1Like, log: string[]): D1Like {
 function harness(o: { limiter?: RateLimiter; now?: () => number } = {}) {
   const sql: string[] = [], lines: LogLine[] = [];
   const deps = {
-    repos: () => d1Repositories(recording(w.db, sql)), keys: () => parseServiceKeys(JSON.stringify({ [k.keyId]: k.secret })),
+    repos: () => d1Repositories(recording(w.db, sql)), db: () => recording(w.db, sql), keys: () => parseServiceKeys(JSON.stringify({ [k.keyId]: k.secret })),
     audience: AUDIENCE, nonces: new NonceWindow(), limiter: o.limiter ?? new RateLimiter(), now: o.now ?? (() => Date.now()),
     log: (l: LogLine) => lines.push(l),
   };
@@ -55,7 +55,7 @@ describe('C2 no invoice read before authorization', () => {
       assert.equal(r.status, 404);
       assert.equal(await r.text(), '{"apiVersion":"v1","kind":"error","error":"not-found-or-forbidden"}');
       assert.deepEqual(touchesData(h.sql), []);
-      assert.ok(h.sql.length >= 1 && h.sql.every(q => /FROM (viewer_sessions|tenant_directory|invoice_permissions)\b/.test(q)), h.sql.join('\n'));
+      assert.ok(h.sql.length >= 1 && h.sql.every(q => /FROM (viewer_sessions|tenant_directory|invoice_permissions)\b|^INSERT INTO service_nonces |^UPDATE viewer_sessions SET idle_expires_at_ms /.test(q)), h.sql.join('\n'));
     });
   }
   test('an authorized viewer does reach the invoice, signatures and attempts (the instrument works)', async () => {
@@ -63,7 +63,8 @@ describe('C2 no invoice read before authorization', () => {
     const r = await h.call('inv-a1', s.tokens.demo);
     assert.equal(r.status, 200);
     assert.ok(touchesData(h.sql).length >= 3);
-    assert.ok(h.sql.every(q => /^\s*SELECT/i.test(q)), 'read path issues SELECTs only');
+    // P10.5: besides SELECTs, only the nonce claim and the session idle slide (auth tables) are written.
+    assert.ok(h.sql.every(q => /^\s*SELECT|^INSERT INTO service_nonces |^UPDATE viewer_sessions SET idle_expires_at_ms /i.test(q)), 'read path writes only auth state');
   });
 });
 
