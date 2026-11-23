@@ -9,3 +9,5 @@ P12 was already merged normally at f4f4b6db66b7ef8f89a2d285c586b9807f0a8272. App
 | Release | Reproducible build and CI, explicit owner approval before publication |
 
 Checkpoint 0. Next: public route shell and authenticated navigation. No P13 tests run yet.
+
+Checkpoint 1. Added focused landing and shared navigation. Moved the existing fixture workspace to /demo and updated browser targets. Verification pending. Next: wire dedicated invoice and activity routes.
