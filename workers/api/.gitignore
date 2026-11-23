@@ -1,0 +1,9 @@
+.wrangler/
+node_modules/
+dist/
+*.sqlite
+*.sqlite3
+.dev.vars
+.dev.vars.*
+demo-identities.json
+local-seed/

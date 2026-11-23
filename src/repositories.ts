@@ -33,6 +33,10 @@ export type Repositories = Readonly<{
 }>;
 
 export type CompositionOptions = Readonly<{
+  /**
+   * `clock` MUST return the request's fixed `nowMs` (the same value passed to readAuthoritativeInvoice), not a live
+   * Date.now(): the projector rejects observations newer than `nowMs`, so a live clock makes every read fail closed.
+   */
   audience: string; clock: () => number;
   /** Absent by default: without an approved read-only chain reader, operations stay unknown and nothing settles. */
   chain?: Readonly<{ rpc: Rpc; attributionCode: string }>;

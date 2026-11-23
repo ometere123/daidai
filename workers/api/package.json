@@ -1,0 +1,22 @@
+{
+  "name": "daidai-api-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "npm run build && node --disable-warning=ExperimentalWarning --experimental-strip-types --test --test-concurrency=1 test/*.test.ts",
+    "seed": "npm run build && node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/seed-local.mjs",
+    "dev": "npm run build && node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/dev-server.mjs"
+  },
+  "devDependencies": {
+    "@celo/attribution-tags": "0.5.0",
+    "@cloudflare/workers-types": "4.20250718.0",
+    "@types/node": "22.20.5",
+    "esbuild": "0.25.12",
+    "miniflare": "3.20250718.3",
+    "typescript": "5.9.3",
+    "viem": "2.45.0",
+    "wrangler": "3.114.17"
+  }
+}
