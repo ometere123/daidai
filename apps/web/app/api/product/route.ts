@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   } : undefined;
   const result = await productCall({ kind, id, key, expected, draft, code }, session);
   if (result?.kind === 'denied') return reject(404);
-  if (result?.kind === 'shared') return go('/merchant/' + id + '#' + code);
-  if (result?.kind === 'revision' || result?.kind === 'revoked') return go('/merchant/' + id);
-  return go((expected === 0 && kind === 'save' ? '/merchant' : '/merchant/' + id) + '?result=' + (result?.kind ?? 'unavailable'));
+  if (result?.kind === 'shared') return go('/invoices/' + id + '#' + code);
+  if (result?.kind === 'revision' || result?.kind === 'revoked') return go('/invoices/' + id);
+  return go((expected === 0 && kind === 'save' ? '/invoices/new' : '/invoices/' + id) + '?result=' + (result?.kind ?? 'unavailable'));
 }

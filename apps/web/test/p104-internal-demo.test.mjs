@@ -95,7 +95,7 @@ test('/internal/authoritative/* is 404 in every environment; the API is never ca
         assert(!r.text.includes('Commitment digest') && !/\bSettled\b/.test(r.text));
       }
       assert.equal(requests.length, 0, 'removed route called the API');
-      const home = await visit(s.base, '/');
+      const home = await visit(s.base, '/demo');
       assert.equal(home.status, 200);
       assert(home.text.includes('Demo workspace'), 'fixture demo strip missing');
       assert.equal(home.walletCalls, 0);

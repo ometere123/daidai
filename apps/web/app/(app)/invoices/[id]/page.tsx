@@ -1,3 +1,6 @@
+import { localProduct } from '../../../../lib/product';
+import { notFound } from 'next/navigation';
+import MerchantInvoice from '../../merchant/[id]/page';
 import type { Metadata } from 'next';
 import { AuthoritativeInvoiceView } from '../../../authoritative-invoice-view';
 import { getAuthoritativeInvoice } from '../../../../lib/daidai-api';
@@ -12,9 +15,10 @@ const settlementText = {
   'reconciliation-required': 'Reconciliation is required before this invoice can be treated as settled. Nothing on this page is a receipt.',
 } as const;
 
-export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function InvoicePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ result?: string }> }) {
   const { token } = await requirePrivate();
   const { id } = await params;
+  if (localProduct() && /^[0-9a-f]{32}$/.test(id)) return MerchantInvoice({ params, searchParams });
   const result = await getAuthoritativeInvoice(id, token);
   return <>
     <a className="back" href="/invoices"><span aria-hidden="true">←</span> Invoices</a>

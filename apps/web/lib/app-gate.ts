@@ -8,6 +8,7 @@
 if (typeof window !== 'undefined') throw new Error('app-gate is server-only');
 
 export function appEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (env.DAIDAI_PUBLIC_RELEASE === '1') return false;
   const vercel = String(env.VERCEL_ENV ?? '').trim().toLowerCase();
   if (vercel === 'production') return env.DAIDAI_APP_ENABLED === '1';
   if (vercel === 'preview') return env.DAIDAI_PREVIEW_ACCESS === '1';

@@ -83,7 +83,7 @@ for (const width of [320, 375, 768, 1440]) {
     const page = await browser.newPage({ viewport: { width, height: width < 800 ? 812 : 900 }, reducedMotion: 'reduce' });
     t.after(() => page.close());
     for (const [name, url, title] of views) {
-      await page.goto(base + url);
+      await page.goto(base + '/demo' + url.slice(1));
       await page.getByRole('heading', { level: 1, name: title }).waitFor();
       await page.evaluate(() => document.fonts.ready);
       await demoSafety(page, name + ' @' + width);
@@ -97,7 +97,7 @@ test('every transaction state renders from a fixture with a (demo) headline and 
   t.after(() => page.close());
   await page.addInitScript(spy);
   for (const [key, s] of Object.entries(scenarios)) {
-    await page.goto(base + '/?demo=' + key);
+    await page.goto(base + '/demo?demo=' + key);
     await page.locator('h1').waitFor();
     await page.waitForTimeout(150);
     const headline = s.view === 'progress' ? await page.locator('h1').innerText() : await page.locator('.stage-open h2').innerText();
@@ -117,7 +117,7 @@ test('every transaction state renders from a fixture with a (demo) headline and 
 test('dashboard keyboard: arrows move the selection, Enter opens', async t => {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
   t.after(() => page.close());
-  await page.goto(base + '/');
+  await page.goto(base + '/demo');
   await page.getByRole('heading', { level: 1, name: 'Invoices' }).waitFor();
   await page.locator('a.row[tabindex="0"]').focus();
   await page.keyboard.press('ArrowDown');
@@ -130,7 +130,7 @@ test('dashboard keyboard: arrows move the selection, Enter opens', async t => {
 test('empty state is accessible and the dialog returns focus', async t => {
   const page = await browser.newPage();
   t.after(() => page.close());
-  await page.goto(base + '/?data=empty');
+  await page.goto(base + '/demo?data=empty');
   await page.getByRole('heading', { name: 'No invoices yet' }).waitFor();
   const newButton = page.locator('.empty').getByRole('button', { name: 'New invoice' });
   await newButton.focus();
@@ -146,13 +146,13 @@ test('quote expiry closes conversion; unknown payout blocks retry; no wallet dis
   t.after(() => page.close());
   await page.addInitScript(spy);
   await page.clock.install();
-  await page.goto(base + '/?invoice=INV-0042');
+  await page.goto(base + '/demo?invoice=INV-0042');
   await page.getByRole('heading', { level: 1, name: /Amaka/ }).waitFor();
   await page.clock.fastForward(45_000);
   await page.locator('.gauge-text').filter({ hasText: /Expired at .* WAT\. No USDt was spent/ }).waitFor();
   assert.equal(await page.getByRole('button', { name: /Review conversion/ }).count(), 0);
   await page.getByRole('button', { name: 'Get a new quote' }).waitFor();
-  await page.goto(base + '/?invoice=INV-0039&view=progress');
+  await page.goto(base + '/demo?invoice=INV-0039&view=progress');
   await page.getByRole('alert').filter({ hasText: /Retrying is blocked/ }).waitFor();
   assert.equal(await page.getByRole('button', { name: /retry/i }).count(), 0);
   assert.deepEqual(await page.evaluate(() => window.walletCalls), []);
@@ -162,7 +162,7 @@ test('conversion and payout stay in the demo, submission never settles, large te
   const page = await browser.newPage({ viewport: { width: 740, height: 375 }, reducedMotion: 'reduce' });
   t.after(() => page.close());
   await page.addInitScript(spy);
-  await page.goto(base + '/?invoice=INV-0042');
+  await page.goto(base + '/demo?invoice=INV-0042');
   await page.getByRole('button', { name: /Review conversion/ }).click();
   await page.getByRole('dialog', { name: /Convert 102\.48.USDt to 150,000.cNGN/ }).waitFor();
   await page.getByRole('button', { name: 'Simulate approval (demo)' }).click();
@@ -180,14 +180,21 @@ test('conversion and payout stay in the demo, submission never settles, large te
 test('focused controls are never hidden behind the sticky bars at 375 px', async t => {
   const page = await browser.newPage({ viewport: { width: 375, height: 667 }, reducedMotion: 'reduce' });
   t.after(() => page.close());
-  await page.goto(base + '/?invoice=INV-0042');
+  await page.goto(base + '/demo?invoice=INV-0042');
   await page.locator('h1').waitFor();
   for (let n = 0; n < 18; n++) {
     await page.keyboard.press('Tab');
     const hidden = await page.evaluate(() => {
       const el = document.activeElement; if (!el || el === document.body || el.matches('.skip') || el.closest('.action-bar, .topbar')) return false;
-      const r = el.getBoundingClientRect(); const bar = document.querySelector('.action-bar')?.getBoundingClientRect(); const top = document.querySelector('.topbar')?.getBoundingClientRect();
-      return Boolean((bar && r.top >= bar.top && r.bottom <= bar.bottom) || (top && r.bottom <= top.bottom));
+      // Real occlusion (P13): the focused element must be the topmost element at its centre, and must not sit inside the
+      // area covered by a sticky bar. (The earlier "above the top bar's bottom edge" heuristic predates the site nav
+      // that now precedes the demo top bar, and flagged fully visible nav links.)
+      const r = el.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const at = document.elementFromPoint(cx, cy);
+      const covered = !at || !(at === el || el.contains(at));
+      const inside = b => !!b && cy >= b.top && cy <= b.bottom;
+      const bar = document.querySelector('.action-bar')?.getBoundingClientRect(); const top = document.querySelector('.topbar')?.getBoundingClientRect();
+      return covered || inside(bar) || inside(top);
     });
     assert.equal(hidden, false, 'focused element obscured at tab stop ' + n);
   }
@@ -197,7 +204,7 @@ test('P09D.1 financial copy: face value vs settlement asset, quote expiry, gated
   const page = await browser.newPage({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce' });
   t.after(() => page.close());
   await page.addInitScript(spy);
-  await page.goto(base + '/?invoice=INV-0042');
+  await page.goto(base + '/demo?invoice=INV-0042');
   await page.locator('h1').waitFor();
   const review = await page.evaluate(() => document.body.innerText);
   assert(!/Pegged/i.test(review), 'peg wording still present');
@@ -205,7 +212,7 @@ test('P09D.1 financial copy: face value vs settlement asset, quote expiry, gated
   assert.match(review, /Not a naira bank payment/);
   assert(!/\bHolds\b|holds \d/i.test(review), '"holds" wording still present');
   assert.match(review, /Quote expires in \d:\d\d/);
-  await page.goto(base + '/?demo=checked');
+  await page.goto(base + '/demo?demo=checked');
   await page.locator('h1').waitFor();
   const checked = await page.evaluate(() => document.body.innerText);
   assert(!/retry is (now )?safe/i.test(checked), 'absolute retry wording still present');
@@ -213,7 +220,7 @@ test('P09D.1 financial copy: face value vs settlement asset, quote expiry, gated
   await page.getByRole('button', { name: 'Review a new payout attempt' }).click();
   await page.getByRole('dialog').getByText('Required before a new payment attempt').waitFor();
   for (const key of ['unknown', 'mismatch', 'conversion-submitted', 'payout-submitted']) {
-    await page.goto(base + '/?demo=' + key);
+    await page.goto(base + '/demo?demo=' + key);
     await page.locator('h1').waitFor();
     assert.equal(await page.getByRole('button', { name: /retry|payout attempt|review payout/i }).count(), 0, key + ': retry offered');
   }
@@ -223,7 +230,7 @@ test('P09D.1 financial copy: face value vs settlement asset, quote expiry, gated
 test('P09D.1 layout: reconciliation readable at 320/375, gauge labels inside, desktop bar never covers costs', async t => {
   for (const width of [320, 375]) {
     const page = await browser.newPage({ viewport: { width, height: 812 }, reducedMotion: 'reduce' });
-    await page.goto(base + '/?invoice=INV-0032&view=progress');
+    await page.goto(base + '/demo?invoice=INV-0032&view=progress');
     await page.locator('.recon').waitFor();
     const diff = await page.locator('tr.difference th').evaluate(el => ({ lines: Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight || '24')), text: el.innerText }));
     assert.equal(diff.lines <= 1, true, 'Difference label wraps at ' + width);
@@ -233,7 +240,7 @@ test('P09D.1 layout: reconciliation readable at 320/375, gauge labels inside, de
   }
   for (const width of [320, 375, 768, 1440]) {
     const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
-    await page.goto(base + '/?invoice=INV-0042');
+    await page.goto(base + '/demo?invoice=INV-0042');
     await page.locator('.gauge-tick.last').waitFor();
     const inside = await page.evaluate(() => { const g = document.querySelector('.gauge').getBoundingClientRect();
       return [...document.querySelectorAll('.gauge-tick span')].every(s => { const r = s.getBoundingClientRect(); return r.left >= g.left - 0.5 && r.right <= g.right + 0.5 && r.height < 24; }); });

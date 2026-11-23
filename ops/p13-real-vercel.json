@@ -1,0 +1,11 @@
+{
+  "team": "delealufejoel-4184s-projects",
+  "project": "daidai-product-ometere",
+  "proposedUrl": "https://daidai-product-ometere.vercel.app",
+  "environment": "production",
+  "rootDirectory": "apps/web",
+  "sourceFilesOutsideRootDirectory": true,
+  "nodeVersion": "22.x",
+  "publicRoutes": ["/", "/pay", "/agent", "/proof", "/demo"],
+  "environmentValues": {"DAIDAI_PUBLIC_RELEASE":"1","DAIDAI_APP_ENABLED":"0","DAIDAI_PREVIEW_ACCESS":"0","DAIDAI_LOCAL_PRODUCT":"0"}
+}

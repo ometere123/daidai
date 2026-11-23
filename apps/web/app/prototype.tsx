@@ -43,7 +43,7 @@ export default function Prototype({ workspace }: { workspace: FixtureWorkspace }
     let items = [...workspace.invoices];
     if (scenario) {
       items = items.map(i => i.id === scenario.id ? scenario.patch(i, clock) : i);
-      if (!q.get('invoice')) history.replaceState(null, '', '/?invoice=' + scenario.id + (scenario.view === 'progress' ? '&view=progress' : '') + '&demo=' + q.get('demo'));
+      if (!q.get('invoice')) history.replaceState(null, '', '/demo?invoice=' + scenario.id + (scenario.view === 'progress' ? '&view=progress' : '') + '&demo=' + q.get('demo'));
     }
     setData(items); read(); setNow(clock); setReady(true);
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -62,7 +62,7 @@ export default function Prototype({ workspace }: { workspace: FixtureWorkspace }
     for (const [k, v] of Object.entries(params)) if (v) q.set(k, v);
     const keep = new URLSearchParams(location.search).get('data');
     if (keep && demoTools && !id) q.set('data', keep);
-    history.pushState(null, '', '/' + (q.size ? '?' + q : ''));
+    history.pushState(null, '', '/demo' + (q.size ? '?' + q : ''));
     setRoute({ invoice: id ?? null, view, filter: params.filter ? slugGroup[params.filter] ?? null : null, selected: params.selected ?? null });
     window.scrollTo(0, 0);
     requestAnimationFrame(() => (document.querySelector<HTMLElement>('main h1') ?? document.querySelector<HTMLElement>('#main'))?.focus());
@@ -78,12 +78,12 @@ export default function Prototype({ workspace }: { workspace: FixtureWorkspace }
     <div className="shell">
       <aside className="rail" aria-label="Sidebar">
         <div className="rail-inner">
-          <a className="rail-brand" href="/" onClick={home}><Wordmark /></a>
+          <a className="rail-brand" href="/demo" onClick={home}><Wordmark /></a>
           <nav aria-label="Invoices">
-            <a className="rail-link" href="/" aria-current={!invoice && !route.filter ? 'page' : undefined} onClick={home}>Invoices</a>
+            <a className="rail-link" href="/demo" aria-current={!invoice && !route.filter ? 'page' : undefined} onClick={home}>Invoices</a>
             <ul className="rail-filters">
               {groups.map(g => <li key={g}>
-                <a href={'/?filter=' + groupSlugs[g]} aria-current={!invoice && route.filter === g ? 'page' : undefined}
+                <a href={'/demo?filter=' + groupSlugs[g]} aria-current={!invoice && route.filter === g ? 'page' : undefined}
                   onClick={e => { e.preventDefault(); go(undefined, 'detail', { filter: groupSlugs[g] }); }}>
                   <StatusGlyph mark={groupMark[g]} /><span>{g}</span><span className="count">{counts[g]}</span>
                 </a>
@@ -98,8 +98,8 @@ export default function Prototype({ workspace }: { workspace: FixtureWorkspace }
       </aside>
       <div className="column">
         <header className="topbar">
-          {invoice ? <a className="back" href="/" onClick={home}><span aria-hidden="true">←</span> Invoices</a>
-            : <a className="top-brand" href="/" onClick={home}><Wordmark /></a>}
+          {invoice ? <a className="back" href="/demo" onClick={home}><span aria-hidden="true">←</span> Invoices</a>
+            : <a className="top-brand" href="/demo" onClick={home}><Wordmark /></a>}
           <span className="top-right">
             <span className="demo-flag" data-source={workspace.source} data-execution={workspace.execution}><StatusGlyph mark="demo" /> Demo</span>
             {!invoice ? <button type="button" className="btn secondary compact" onClick={() => setNewOpen(true)}><span aria-hidden="true">+</span> New</button> : null}
@@ -158,7 +158,7 @@ function Dashboard({ data, dataset, now, filter, selectedId, counts, go, onNew }
 
   function select(i: Invoice, focus = false) {
     const q = new URLSearchParams(location.search); q.set('selected', i.id);
-    history.replaceState(null, '', '/?' + q);
+    history.replaceState(null, '', '/demo?' + q);
     setSel(i.id);
     if (focus) rowRefs.current[i.id]?.focus();
   }
@@ -200,7 +200,7 @@ function Dashboard({ data, dataset, now, filter, selectedId, counts, go, onNew }
               <h2 id={'g-' + groupSlugs[g]} className="group-h">{g}<span className="count">, {rows.length}</span></h2>
               <ul>{rows.map(i => <li key={i.id}>
                 <a ref={el => { rowRefs.current[i.id] = el; }} className={'row' + (current?.id === i.id ? ' selected' : '')}
-                  href={'/?invoice=' + i.id + (opensProgress(i) ? '&view=progress' : '')}
+                  href={'/demo?invoice=' + i.id + (opensProgress(i) ? '&view=progress' : '')}
                   tabIndex={current?.id === i.id ? 0 : -1} aria-current={current?.id === i.id ? 'true' : undefined}
                   onFocus={() => { if (current?.id !== i.id) select(i); }}
                   onClick={e => {

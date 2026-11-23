@@ -27,8 +27,9 @@ export async function exerciseProduct({ browser, base, invitations, check, servi
   };
   try {
     await login(m, invitations['demo-viewer'][2]);
-    await m.goto(base + '/merchant');
-    check('P11 merchant arrives at an empty isolated workspace', /No invoices yet/.test(await body(m)));
+    await m.goto(base + '/invoices');
+    check('P11 merchant arrives at an empty isolated workspace', /No merchant invoices yet/.test(await body(m)));
+    await m.getByRole('link', { name: 'New invoice', exact: true }).click();
     await m.getByLabel('Exact recipient amount (cNGN)').fill('1500');
     await m.getByLabel('Maximum all-in debit (USDt)').fill('1.20');
     await m.getByLabel('Recipient wallet').fill('0x' + '12'.repeat(20));
@@ -36,7 +37,7 @@ export async function exerciseProduct({ browser, base, invitations, check, servi
     const created = await submit(m, 'Create draft');
     assert.equal(created.status(), 303, 'create draft must redirect');
     const location = await created.headerValue('location');
-    assert(location && /^\/merchant\/[a-f0-9]{32}$/.test(location), 'create draft must return the invoice detail location');
+    assert(location && /^\/invoices\/[a-f0-9]{32}$/.test(location), 'create draft must return the invoice detail location');
     const invoice = new URL(location, base);
     await m.waitForURL(invoice.href);
     check('P11 persistent draft created with exact cNGN target', await m.getByText('1500 cNGN', { exact: true }).isVisible());
@@ -66,23 +67,26 @@ export async function exerciseProduct({ browser, base, invitations, check, servi
     const opened = await submit(p, 'Review shared invoice');
     await p.getByRole('heading', { name: 'Committed invoice' }).waitFor();
     const payerBody = await body(p);
-    check('P11 payer sees the scoped commitment and simulated all-in debit', opened.status() === 303 &&
-      /1500 cNGN/.test(payerBody) && /1\.001 USDt/.test(payerBody) && /missing verified authorization/.test(payerBody));
+    check('P11 payer sees the scoped commitment and honest quote unavailability', opened.status() === 303 &&
+      /1500 cNGN/.test(payerBody) && /Quote unavailable/.test(payerBody) && /recipient consent are outstanding/.test(payerBody));
     const payerResponse = await p.reload();
     check('P11 mobile review fits without horizontal overflow', await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     check('P11 review is private and browser HTML omits service and share keys',
       /no-store|private/.test(payerResponse?.headers()['cache-control'] ?? '') &&
       !(await p.content()).includes(serviceSecret) && !(await p.content()).includes(href.split('#')[1]));
 
-    await p.getByRole('link', { name: 'View a simulated unknown payout' }).click();
-    await p.getByText('Simulation · Needs reconciliation', { exact: true }).waitFor();
-    check('P11 unknown evidence keeps payout separate and exposes no retry or settled state', /separate exact cNGN/.test(await body(p)) &&
+    await p.goto(base + '/pay?scenario=unknown');
+    check('P11 unknown evidence keeps payout separate and exposes no retry or settled state', /Not settled/.test(await body(p)) && !(await body(p)).includes('Simulation ·') &&
       !(await p.getByRole('button', { name: /retry|settled/i }).count()) && !(await body(p)).includes('Payment complete'));
     await submit(m, 'Revoke payment links');
     await p.reload();
     await p.getByText(/These payment instructions are unavailable/).waitFor();
     check('P11 revoked capability immediately loses access', !(await p.getByRole('heading', { name: 'Committed invoice' }).count()));
 
+    await m.goto(base + '/activity');
+    check('P13 activity uses the authorized projection and identifies evidence gaps', /Settlement activity/.test(await body(m)) &&
+      /Not settled/.test(await body(m)) && !(await body(m)).includes('Demo workspace'));
+    await m.goto(invoice.href);
     await submit(m, 'Cancel invoice');
     await m.getByRole('heading', { name: 'Cancelled' }).waitFor();
     check('P11 cancellation retains committed revision history', /Revision 3 · committed/.test(await body(m)) && /Revision 4 · cancelled/.test(await body(m)));

@@ -80,8 +80,8 @@ try {
   await page.fill('input[name=invitation]', codes[1]);
   await Promise.all([page.waitForURL(/\/invoices$/), page.click('button[type=submit]')]);
   check('a fresh invitation creates a new session', new URL(page.url()).pathname === '/invoices');
-  await page.goto(base + '/');
-  check('fixture demo at / unchanged (Demo workspace strip)', /Demo workspace/.test(await page.textContent('body')));
+  await page.goto(base + '/demo');
+  check('fixture demo at /demo unchanged (Demo workspace strip)', /Demo workspace/.test(await page.textContent('body')));
   const sessionCookie = (await ctx.cookies()).find(c => c.name === '__Host-daidai_session');
   if (product) await exerciseProduct({ browser, base, invitations: id.invitations, check, serviceSecret: id.service.secret });
   kill(web);

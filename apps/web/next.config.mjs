@@ -13,6 +13,10 @@ export default {
       { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
       { key: 'X-Frame-Options', value: 'DENY' },
     ];
-    return ['/merchant/:path*', '/pay'].map(source => ({ source, headers }));
+    return [{ source: '/:path*', headers: [
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'X-Frame-Options', value: 'DENY' },
+      { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
+    ] }, ...['/merchant/:path*', '/invoices/:path*', '/activity', '/pay'].map(source => ({ source, headers }))];
   },
 };

@@ -17,7 +17,7 @@ export default async function MerchantInvoice({ params, searchParams }: { params
   const expired = revision.expiry <= Date.now();
   const { result } = await searchParams;
   return <>
-    <a href="/merchant">Merchant workspace</a>
+    <a href="/invoices">Merchant workspace</a>
     <h1 className="title">Invoice terms</h1>
     <ProductError result={result} />
     <section className="panel product-panel"><h2>{revision.state === 'cancelled' ? 'Cancelled' : expired ? 'Expired' : revision.state === 'draft' ? 'Draft' : 'Committed · awaiting approvals'}</h2>
@@ -33,6 +33,7 @@ export default async function MerchantInvoice({ params, searchParams }: { params
       <MutationButton revision={revision} kind="revoke" label="Revoke payment links" />
     </section>}
     {revision.state !== 'cancelled' && <MutationButton revision={revision} kind="cancel" label="Cancel invoice" />}
+    <section className="panel product-panel"><h2>Settlement timeline</h2><p>Conversion · no finalized evidence</p><p>Recipient payout · no finalized evidence</p><strong>Not settled</strong></section>
     <section className="panel product-panel"><h2>Revision history</h2><ol>{history?.revisions.map(r => <li key={r.revision}>
       Revision {r.revision} · {r.state} · <time dateTime={new Date(r.at).toISOString()}>{new Date(r.at).toISOString()}</time>
     </li>)}</ol></section>

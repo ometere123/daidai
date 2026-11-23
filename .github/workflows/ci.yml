@@ -113,6 +113,7 @@ jobs:
             sleep 1
           done
           npm run test:browser
+          node ../../scripts/p13-product-smoke.mjs
 
   web-p104:
     runs-on: ubuntu-24.04
