@@ -186,8 +186,15 @@ test('focused controls are never hidden behind the sticky bars at 375 px', async
     await page.keyboard.press('Tab');
     const hidden = await page.evaluate(() => {
       const el = document.activeElement; if (!el || el === document.body || el.matches('.skip') || el.closest('.action-bar, .topbar')) return false;
-      const r = el.getBoundingClientRect(); const bar = document.querySelector('.action-bar')?.getBoundingClientRect(); const top = document.querySelector('.topbar')?.getBoundingClientRect();
-      return Boolean((bar && r.top >= bar.top && r.bottom <= bar.bottom) || (top && r.bottom <= top.bottom));
+      // Real occlusion (P13): the focused element must be the topmost element at its centre, and must not sit inside the
+      // area covered by a sticky bar. (The earlier "above the top bar's bottom edge" heuristic predates the site nav
+      // that now precedes the demo top bar, and flagged fully visible nav links.)
+      const r = el.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const at = document.elementFromPoint(cx, cy);
+      const covered = !at || !(at === el || el.contains(at));
+      const inside = b => !!b && cy >= b.top && cy <= b.bottom;
+      const bar = document.querySelector('.action-bar')?.getBoundingClientRect(); const top = document.querySelector('.topbar')?.getBoundingClientRect();
+      return covered || inside(bar) || inside(top);
     });
     assert.equal(hidden, false, 'focused element obscured at tab stop ' + n);
   }
