@@ -27,7 +27,16 @@ export function parseRevision(value: unknown): Revision | null {
   if (v.state === 'draft' && v.digest !== null || v.state === 'committed' && v.digest === null) return null;
   return { ...draft, id: v.id, revision: v.revision, state: v.state, digest: v.digest, at: v.at };
 }
-export function parseProduct(value: unknown) {
+export type ProductRequest =
+  | { kind: 'list' }
+  | { kind: 'redeem'; code: string }
+  | { kind: 'detail'; id: string }
+  | { kind: 'revoke'; id: string }
+  | { kind: 'share'; id: string; code: string }
+  | { kind: 'save'; id: string; key: string; expected: number; draft: Draft }
+  | { kind: 'commit' | 'cancel'; id: string; key: string; expected: number };
+
+export function parseProduct(value: unknown): ProductRequest | null {
   const v = obj(value);
   if (v.version !== 'p11.v1') return null;
   if (v.kind === 'list') return { kind: 'list' } as const;

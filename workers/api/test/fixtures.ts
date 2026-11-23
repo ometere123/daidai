@@ -19,7 +19,7 @@ export const randomNonce = () => Buffer.from(crypto.getRandomValues(new Uint8Arr
 export function serviceKey() { return { keyId: 'local-' + hex(4), secret: hex(32) }; }
 
 /** Runtime stdout/stderr are captured (not printed) so tests can assert log redaction. */
-export async function startWorker(o: { keys: Record<string, string>; persist?: string; audience?: string; logs?: string[] }) {
+export async function startWorker(o: { keys: Record<string, string>; persist?: string; audience?: string; product?: boolean; logs?: string[] }) {
   const logs = o.logs ?? [];
   const mf = new Miniflare({
     handleRuntimeStdio(stdout, stderr) {
@@ -27,7 +27,7 @@ export async function startWorker(o: { keys: Record<string, string>; persist?: s
     },
     modules: true, scriptPath: WORKER, compatibilityDate: '2024-11-01', compatibilityFlags: ['nodejs_compat'],
     d1Databases: { DB: 'daidai-local' }, d1Persist: o.persist ?? false,
-    bindings: { DAIDAI_SERVICE_KEYS: JSON.stringify(o.keys), DAIDAI_AUDIENCE: o.audience ?? AUDIENCE },
+    bindings: { ...(o.product ? { DAIDAI_LOCAL_PRODUCT: 'isolated-miniflare' } : {}), DAIDAI_SERVICE_KEYS: JSON.stringify(o.keys), DAIDAI_AUDIENCE: o.audience ?? AUDIENCE },
   });
   await mf.ready;
   const db = await mf.getD1Database('DB') as unknown as D1Like;

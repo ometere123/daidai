@@ -26,3 +26,8 @@ Tests are pending for this checkpoint. Next action is to wire the authenticated 
 ## Checkpoint 2
 
 `d164bdc` added the Worker/D1 product boundary. This checkpoint connects the authenticated merchant and payer screens, the signed server client, immutable revision history, and one-invoice read-only share links. Simulation uses documented Textile preview fields and a local review expiry. The product accepts no wallet or execution requests. Frontend strict TypeScript passed. The full-stack and D1 adversarial tests are next. Public RPC remains unqualified.
+
+
+## Checkpoint 3
+
+`bf3298f` wired the customer pages. The isolated D1 product tests now pass 6/6, including idempotent creation, revision races, immutable history, restart persistence, tenant and merchant isolation, scoped expiring/revocable sharing and database failure. Worker strict TypeScript passed after explicitly modeling the product request union. Next action is the end-to-end browser test and Celo/Textile evidence checkpoint. D1 and Next run on disposable local state only.
