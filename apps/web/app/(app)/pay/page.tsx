@@ -1,3 +1,5 @@
+import { reviewDecisions } from '../../../../../src/review-decisions';
+import { DecisionRecords } from '../../decision-records';
 import { cookies } from 'next/headers';
 import { cngn, usdt } from '../../../../../src/invoice-core';
 import { preparePreview } from '../../../../../src/product-quote';
@@ -39,6 +41,7 @@ export default async function PayerReview({ searchParams }: { searchParams: Prom
       <section className="panel product-panel"><h2>Authorization and wallet readiness</h2>
         <p>Verified invoice approval and recipient consent are outstanding.</p><WalletReadiness />
       </section>
+      <DecisionRecords rows={reviewDecisions({ quote: quote?.kind, observedAt: Date.now(), correlation: invoice.id, provenance: "authorized invoice projection" })} />
       <section className="panel product-panel"><h2>Settlement review</h2>
         <p>Conversion: no finalized evidence.</p><p>Recipient payout: no finalized evidence.</p><strong>Not settled</strong>
         <p>An unknown payout must be reconciled before a new attempt can be considered.</p>

@@ -1,3 +1,5 @@
+import { reviewDecisions } from '../../../../../src/review-decisions';
+import { DecisionRecords } from '../../decision-records';
 import { requirePrivate } from '../../../lib/private';
 import { getAuthoritativeInvoice } from '../../../lib/daidai-api';
 
@@ -14,6 +16,7 @@ export default async function Activity() {
       {(['conversion','payout'] as const).map(operation => <div key={operation}><strong>{operation === 'conversion' ? 'Conversion' : 'Payout'}</strong>
         <p>{i[operation].state.replaceAll('-', ' ')}</p>
         {i[operation].evidence && <code>{i[operation].evidence.hash}</code>}</div>)}
+      <DecisionRecords rows={reviewDecisions({ approval: i.approval.state, consent: i.consent.state, conversion: i.conversion.state, payout: i.payout.state, observedAt: i.observedAtMs, correlation: i.id, provenance: "authorized invoice projection" })} />
     </section>)}
     {(invoices?.length ?? 0) > 8 && <p><a href="/invoices">View all invoices</a> for individual evidence.</p>}
   </>;
