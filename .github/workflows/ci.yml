@@ -1,0 +1,207 @@
+# Daidai CI. Read-only: no secrets, no wallets, no RPC credentials, no deploys.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22.x'
+  PLAYWRIGHT_VERSION: '1.65.1' # must match playwright-core in package-lock.json
+  CI: 'true'
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  root:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  root-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: |
+          npx --yes "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium
+          path="$(node -e "console.log(require('playwright-core').chromium.executablePath())")"
+          test -x "$path"
+          echo "DAIDAI_CHROMIUM_PATH=$path" >> "$GITHUB_ENV"
+      - run: npm run test:browser
+
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/web/package-lock.json
+      # Root deps: apps/web imports ../../../src (typecheck) and resolves playwright-core from the root.
+      - name: Install root dependencies
+        run: npm ci
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm ci
+      - name: Typecheck
+        working-directory: apps/web
+        run: npm run typecheck
+      - name: Model tests
+        working-directory: apps/web
+        run: npm run test:model
+      - name: Production build (no demo tools)
+        working-directory: apps/web
+        run: npm run build
+      - name: Install Chromium
+        run: |
+          npx --yes "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium
+          path="$(node -e "console.log(require('playwright-core').chromium.executablePath())")"
+          test -x "$path"
+          echo "DAIDAI_CHROMIUM_PATH=$path" >> "$GITHUB_ENV"
+      - name: Demo build
+        working-directory: apps/web
+        env:
+          NEXT_PUBLIC_DAIDAI_DEMO_TOOLS: '1'
+        run: npm run build
+      - name: Browser tests against local preview
+        working-directory: apps/web
+        env:
+          DAIDAI_PREVIEW_URL: http://127.0.0.1:3219
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3219 > "$RUNNER_TEMP/next.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null "$DAIDAI_PREVIEW_URL/"; then break; fi
+            if ! kill -0 "$server" 2>/dev/null; then cat "$RUNNER_TEMP/next.log"; exit 1; fi
+            if [ "$i" = 60 ]; then echo "preview not ready"; cat "$RUNNER_TEMP/next.log"; exit 1; fi
+            sleep 1
+          done
+          npm run test:browser
+
+  web-p104:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/web/package-lock.json
+      - name: Check for test:p104
+        id: probe
+        working-directory: apps/web
+        run: |
+          if node -e "process.exit(require('./package.json').scripts?.['test:p104'] ? 0 : 1)"; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "apps/web has no test:p104 script yet; skipping."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.probe.outputs.present == 'true'
+        run: npm ci
+      - if: steps.probe.outputs.present == 'true'
+        working-directory: apps/web
+        run: npm ci
+      - if: steps.probe.outputs.present == 'true'
+        name: Install Chromium
+        run: |
+          npx --yes "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium
+          path="$(node -e "console.log(require('playwright-core').chromium.executablePath())")"
+          test -x "$path"
+          echo "DAIDAI_CHROMIUM_PATH=$path" >> "$GITHUB_ENV"
+      - if: steps.probe.outputs.present == 'true'
+        working-directory: apps/web
+        run: npm run test:p104
+
+  workers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Worker API (local Miniflare only)
+        run: |
+          if [ ! -f workers/api/package.json ]; then
+            echo "workers/api not present yet; skipping."
+            exit 0
+          fi
+          npm ci
+          cd workers/api
+          npm ci
+          npm run typecheck
+          npm test
+
+  secret-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Scan tracked files for credential-like content
+        run: |
+          status=0
+          # Private keys and keyed RPC URLs anywhere in tracked files.
+          if git grep -nIE \
+              -e '-----BEGIN ([A-Z]+ )?PRIVATE KEY-----' \
+              -e 'alchemy\.com/v2/[A-Za-z0-9_-]{8,}' \
+              -e 'infura\.io/v3/[0-9a-fA-F]{16,}' \
+              -e '[?&]key=[A-Za-z0-9_-]{16,}'; then
+            echo "::error::Credential-like content found (see above)."
+            status=1
+          fi
+          # 32-byte hex values (possible private keys) in env-style files only; tx hashes in tests are not flagged.
+          if git grep -nIE '0x[0-9a-fA-F]{64}' -- '.env*' '**/.env*' '*.dev.vars' '**/.dev.vars'; then
+            echo "::error::0x-prefixed 32-byte hex value in an env-style file."
+            status=1
+          fi
+          # Env files themselves should not be tracked (examples allowed).
+          if git ls-files | grep -E '(^|/)(\.env(\.[^/]*)?|\.dev\.vars)$' | grep -vE '\.(example|sample|template)$'; then
+            echo "::error::Tracked env file found."
+            status=1
+          fi
+          exit "$status"
