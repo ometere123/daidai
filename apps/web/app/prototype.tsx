@@ -3,27 +3,27 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
-  fixtures, groupShort, groupSlugs, groups, nextAction, opensProgress, OPERATOR, parseAtomic, phase, quoteState, scenarios,
+  groupShort, groupSlugs, groups, nextAction, opensProgress, OPERATOR, parseAtomic, phase, quoteState, scenarios,
   type Group, type Invoice,
 } from './model';
+import type { FixtureWorkspace } from './invoice-workspace';
 import { Detail, Progress } from './settlement';
 import { DemoStrip, PlumbBob, returnFocus, StatusGlyph, StatusMark, TokenAmount, Wordmark, countdown, type Mark } from './ui';
 
 type View = 'detail' | 'progress';
 const demoTools = process.env.NEXT_PUBLIC_DAIDAI_DEMO_TOOLS === '1';
-const start = 1_760_000_000_000;
 const groupMark: Record<Group, Mark> = {
   'Needs you': 'needs-you', 'Needs reconciliation': 'recon', 'In progress': 'submitted', 'Waiting for signatures': 'waiting', 'Settled': 'settled',
 };
 const slugGroup = Object.fromEntries(Object.entries(groupSlugs).map(([g, s]) => [s, g])) as Record<string, Group>;
 const isDesktop = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
 
-export default function Prototype() {
-  const [data, setData] = useState<Invoice[]>(() => fixtures(start));
+export default function Prototype({ workspace }: { workspace: FixtureWorkspace }) {
+  const [data, setData] = useState<Invoice[]>(() => [...workspace.invoices]);
   const [route, setRoute] = useState<{ invoice: string | null; view: View; filter: Group | null; selected: string | null }>({ invoice: null, view: 'detail', filter: null, selected: null });
   const [dataset, setDataset] = useState<'normal' | 'empty' | 'loading'>('normal');
   const [ready, setReady] = useState(false);
-  const [now, setNow] = useState(start);
+  const [now, setNow] = useState(workspace.observedAtMs);
   const [newOpen, setNewOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [live, setLive] = useState('');
@@ -40,7 +40,7 @@ export default function Prototype() {
     const clock = Date.now();
     const q = new URLSearchParams(location.search);
     const scenario = demoTools ? scenarios[q.get('demo') ?? ''] : undefined;
-    let items = fixtures(clock);
+    let items = [...workspace.invoices];
     if (scenario) {
       items = items.map(i => i.id === scenario.id ? scenario.patch(i, clock) : i);
       if (!q.get('invoice')) history.replaceState(null, '', '/?invoice=' + scenario.id + (scenario.view === 'progress' ? '&view=progress' : '') + '&demo=' + q.get('demo'));
@@ -49,7 +49,7 @@ export default function Prototype() {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     window.addEventListener('popstate', read);
     return () => { clearInterval(timer); window.removeEventListener('popstate', read); };
-  }, []);
+  }, [workspace.invoices]);
 
   const invoice = route.invoice ? data.find(i => i.id === route.invoice) : undefined;
   useEffect(() => {
@@ -101,7 +101,7 @@ export default function Prototype() {
           {invoice ? <a className="back" href="/" onClick={home}><span aria-hidden="true">←</span> Invoices</a>
             : <a className="top-brand" href="/" onClick={home}><Wordmark /></a>}
           <span className="top-right">
-            <span className="demo-flag"><StatusGlyph mark="demo" /> Demo</span>
+            <span className="demo-flag" data-source={workspace.source} data-execution={workspace.execution}><StatusGlyph mark="demo" /> Demo</span>
             {!invoice ? <button type="button" className="btn secondary compact" onClick={() => setNewOpen(true)}><span aria-hidden="true">+</span> New</button> : null}
             <button type="button" className="avatar-btn" aria-label="Workspace menu" onClick={() => setMenuOpen(true)}><span aria-hidden="true">D</span></button>
           </span>
