@@ -69,3 +69,8 @@ The earlier CI run exposed a NodeNext import-resolution mismatch. The root-compi
 `22431db` hardened the product route boundary. This checkpoint binds new product digests to tenant and invoice identity, adds a typed simulated observation that cannot produce a settled result, and documents the demo, isolated migration and launch runbook in P11-DEMO-AND-OPERATIONS.md.
 
 The Worker upgrades Miniflare, esbuild and viem, removes unused Wrangler from the local dependency graph, and pins patched sharp, undici and Zod versions. The Worker npm audit on the updated lock reports zero findings. The P11 D1 suite passed 7/7 on Miniflare 4 before the patched transitive lock was applied. The focused quote, transport and observation suite passed 10/10. The browser flow passed 28/28 before the final UI hardening. Full final verification uses the new exact-head Actions run; the public Celo and Textile probes remain unqualified. Next action is to verify all jobs and review readiness without enabling product routes outside isolated storage.
+
+
+### Dependency verification
+
+`b920362` delivered the runbook and patched Worker graph. The next verification found the revised Worker package types no longer inferred the local runtime log streams under Ubuntu CI. The test fixture now declares Node Readable streams explicitly. The root dependency audit identified the transitive ws package. This branch pins its patched 8.21.0 release without changing core chain or registration logic. Root, Web and Worker package audits now report zero. Exact-head CI remains the approval record.

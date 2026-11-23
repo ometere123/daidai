@@ -1,5 +1,6 @@
 // Test/seed fixtures for the local D1 prototype. Every key and token is generated at runtime and never written to
 // tracked files. Nothing here talks to a network.
+import type { Readable } from 'node:stream';
 import { Miniflare } from 'miniflare';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { fileURLToPath } from 'node:url';
@@ -22,7 +23,7 @@ export function serviceKey() { return { keyId: 'local-' + hex(4), secret: hex(32
 export async function startWorker(o: { keys: Record<string, string>; persist?: string; audience?: string; product?: boolean; logs?: string[] }) {
   const logs = o.logs ?? [];
   const mf = new Miniflare({
-    handleRuntimeStdio(stdout, stderr) {
+    handleRuntimeStdio(stdout: Readable, stderr: Readable) {
       for (const stream of [stdout, stderr]) stream.on('data', (chunk: Buffer) => logs.push(...String(chunk).split('\n').filter(Boolean)));
     },
     modules: true, scriptPath: WORKER, compatibilityDate: '2024-11-01', compatibilityFlags: ['nodejs_compat'],
