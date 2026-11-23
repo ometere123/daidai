@@ -3,6 +3,9 @@ import { registration } from '../../../../src/public-registration';
 import { publicObservation } from '../../lib/public-observation';
 import { SiteNav } from '../site-nav';
 
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Public verification', description: 'Independent Celo observation of Daidai’s public registration evidence.' };
+
 export default async function Proof() {
   await connection();
   const report = await publicObservation();

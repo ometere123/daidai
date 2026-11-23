@@ -4,6 +4,9 @@ import { publicObservation } from '../../lib/public-observation';
 import { SiteNav } from '../site-nav';
 import { DecisionRecords } from '../decision-records';
 
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Agent #10103', description: 'Daidai’s Celo ERC-8004 identity and its financial controls.' };
+
 export default async function Agent() {
   await connection();
   const report = await publicObservation();

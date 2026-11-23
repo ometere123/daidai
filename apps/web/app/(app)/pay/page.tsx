@@ -11,6 +11,8 @@ import { amount, Terms } from '../product-ui';
 import { ShareFragment } from '../share-fragment';
 import WalletReadiness from './wallet-readiness';
 
+import type { Metadata } from 'next';
+export const metadata: Metadata = { title: 'Payer review', robots: { index: false, follow: false, nocache: true } };
 export const dynamic = 'force-dynamic';
 export default async function PayerReview({ searchParams }: { searchParams: Promise<{ result?: string }> }) {
   if (!localProduct()) return <><h1 className="title">Payer review</h1><p>The authenticated invoice service is unavailable in this environment.</p><a href="/demo">Try the isolated demo</a></>;
