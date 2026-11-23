@@ -16,3 +16,7 @@ Next: inspect and extend the existing production gates and read-only contracts. 
 ## Infrastructure checkpoint
 
 Base checkpoint 4ce96a8 opened draft PR #9. The Worker now fails closed outside the isolated runtime, with public and preview routes disabled in Wrangler. The signed local integration uses an atomic D1 service quota with a separate invitation budget. Config validation checks both hosted defaults and the local-only flags. This checkpoint does not provision anything. Next: exercise D1 contention and define the hosted identity and operator boundaries.
+
+## Identity checkpoint
+
+Infrastructure head f74b78d. Added a fail-closed IdP contract with issuer/audience/expiry and tenant membership checks. Operator review additionally requires an independent grant and recent MFA. This is a tested adapter boundary, with no production provider or hosted route. Added D1 budget and hosted shutdown regressions. Next: qualify independent Celo providers and retain their public evidence.
