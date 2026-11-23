@@ -1,0 +1,20 @@
+# Daidai read-only API Worker (P10.4). LOCAL PROTOTYPE ONLY.
+# Not deployed: there are no routes, no custom domain and workers_dev is off. Never run `wrangler deploy` from here.
+name = "daidai-api"
+main = "dist/worker.js"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+# LOCAL ONLY / NOT PROVISIONED. The id is a placeholder; no remote D1 database exists for this project.
+[[d1_databases]]
+binding = "DB"
+database_name = "daidai-local"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[vars]
+# Non-secret. The EIP-712 audience (origin) the stored authorizations were signed for.
+DAIDAI_AUDIENCE = "http://127.0.0.1:3000"
+
+# Secrets (never committed): DAIDAI_SERVICE_KEYS = JSON {"<keyId>": "<secret, >= 32 chars>"}
+# Locally: workers/api/.dev.vars (gitignored, written by scripts/seed-local.mjs). Remote: `wrangler secret put` (not used in P10.4).
