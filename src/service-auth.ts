@@ -40,7 +40,9 @@ export async function signRequest(o: { keyId: string; secret: string; method: st
 /** Bounded, per-process replay window. Returns false if the nonce was already seen within the window. */
 export class NonceWindow {
   #seen = new Map<string, number>();
-  constructor(readonly ttlMs = 2 * MAX_SKEW_MS, readonly max = 50_000) {}
+  readonly ttlMs: number;
+  readonly max: number;
+  constructor(ttlMs = 2 * MAX_SKEW_MS, max = 50_000) { this.ttlMs = ttlMs; this.max = max; }
   claim(nonce: string, nowMs: number): boolean {
     for (const [n, t] of this.#seen) { if (nowMs - t > this.ttlMs || this.#seen.size > this.max) this.#seen.delete(n); else break; }
     if (this.#seen.has(nonce)) return false;
