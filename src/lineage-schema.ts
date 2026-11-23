@@ -83,6 +83,20 @@ export const LINEAGE_SCHEMA_STATEMENTS: readonly string[] = Object.freeze([
   BEGIN SELECT RAISE(ABORT, 'attempt history is append-only'); END`,
   `CREATE TRIGGER IF NOT EXISTS events_append_only_delete BEFORE DELETE ON attempt_events
   BEGIN SELECT RAISE(ABORT, 'attempt history is append-only'); END`,
+  // P10.5: taker nonce reservations. A (chain, sender, nonce) can be reserved by exactly one attempt, across all
+  // invoices and tenants, and a reservation is permanent history.
+  `CREATE TABLE IF NOT EXISTS taker_nonces (
+  chain_id INTEGER NOT NULL, sender TEXT NOT NULL, nonce INTEGER NOT NULL CHECK (nonce >= 0),
+  attempt_id TEXT NOT NULL UNIQUE REFERENCES attempts (attempt_id), reserved_at_ms INTEGER NOT NULL,
+  PRIMARY KEY (chain_id, sender, nonce)
+)`,
+  `CREATE TRIGGER IF NOT EXISTS taker_nonce_no_replace BEFORE INSERT ON taker_nonces
+  WHEN EXISTS (SELECT 1 FROM taker_nonces WHERE (chain_id = NEW.chain_id AND sender = NEW.sender AND nonce = NEW.nonce) OR attempt_id = NEW.attempt_id)
+  BEGIN SELECT RAISE(ABORT, 'taker nonce already reserved'); END`,
+  `CREATE TRIGGER IF NOT EXISTS taker_nonce_immutable BEFORE UPDATE ON taker_nonces
+  BEGIN SELECT RAISE(ABORT, 'taker nonce reservations are immutable'); END`,
+  `CREATE TRIGGER IF NOT EXISTS taker_nonce_no_delete BEFORE DELETE ON taker_nonces
+  BEGIN SELECT RAISE(ABORT, 'taker nonce reservations are immutable'); END`,
 ]);
 
 /** Single-script form for node:sqlite exec(). */
