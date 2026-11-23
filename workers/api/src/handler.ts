@@ -34,11 +34,17 @@ import type { D1Like } from './d1-schema.ts';
 
 export const MAX_OBSERVATION_AGE_MS = 60_000;
 
-/** Token bucket per key id. Per isolate only: Workers run many isolates, so this is a local brake, not a global quota. */
+/**
+ * Token bucket per key id. Per isolate only: Workers run many isolates, so this is a local brake, not a global quota.
+ * P13: the bucket is keyed by *service* key, and the Vercel server is a single service identity shared by every user,
+ * so the default is a service-level budget (600 burst, 10/s). The P10 default (60, 1/s) let one multipage session
+ * exhaust it for everyone (observed: 429 on the 60th call of the product journey). The stricter invitation-exchange
+ * bucket (SESSION_BUCKET) and the optional global launch quota (launch-rate.ts) are unchanged.
+ */
 export class RateLimiter {
   #buckets = new Map<string, { tokens: number; at: number }>();
   readonly capacity: number; readonly refillPerSecond: number;
-  constructor(capacity = 60, refillPerSecond = 1) { this.capacity = capacity; this.refillPerSecond = refillPerSecond; }
+  constructor(capacity = 600, refillPerSecond = 10) { this.capacity = capacity; this.refillPerSecond = refillPerSecond; }
   take(key: string, nowMs: number): boolean {
     const b = this.#buckets.get(key) ?? { tokens: this.capacity, at: nowMs };
     b.tokens = Math.min(this.capacity, b.tokens + Math.max(0, nowMs - b.at) / 1000 * this.refillPerSecond);
