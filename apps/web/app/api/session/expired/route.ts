@@ -1,3 +1,4 @@
+import { productCookie } from '../../../../lib/product';
 /**
  * GET /api/session/expired: private pages redirect here when the Worker rejects the session. The cookie is cleared
  * only after the Worker confirms the session is invalid, so a cross-site GET cannot sign out a valid session.
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const response = new NextResponse(null, { status: 303, headers: { ...privateHeaders, location: '/login' } });
   if (token !== undefined && (await listInvoices(token)).kind === 'not-found-or-forbidden') {
+    response.cookies.set(productCookie, '', { ...cookieAttributes, maxAge: 0 });
     response.cookies.set(SESSION_COOKIE, '', { ...cookieAttributes, maxAge: 0 });
   }
   return response;

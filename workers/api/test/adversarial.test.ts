@@ -238,11 +238,22 @@ describe('ADV-1 Worker HTTP boundary', () => {
   });
 
   test('Origin (any value, including "null") → 401; OBSERVATION: Referer / Sec-Fetch-* alone are not rejected (only a signed request gets through)', async () => {
-    for (const origin of ['null', 'http://127.0.0.1:3000', '']) {
+    for (const origin of ['null', 'http://127.0.0.1:3000']) {
       const r = await send('/v1/health', { ...await signedHeaders({ ...k, path: '/v1/health' }), origin });
       assert.equal(r.status, 401, JSON.stringify(origin)); assert.equal(r.text, UNAUTH);
       noCorsNoCookie(r);
     }
+    // Miniflare 4's transport can remove an empty header. Test its presence at the same handler boundary directly.
+    const empty = new Request(BASE + '/v1/health', { headers: { ...await signedHeaders({ ...k, path: '/v1/health' }), origin: '' } });
+    assert.equal(empty.headers.has('origin'), true);
+    const denied = await handle(empty, {
+      repos: () => { throw Error('unexpected invoice access'); },
+      db: () => { throw Error('unexpected database access'); },
+      keys: () => { throw Error('unexpected service authentication'); },
+      audience: AUDIENCE, nonces: new NonceWindow(), limiter: new RateLimiter(), now: Date.now, log: () => {},
+    });
+    assert.equal(denied.status, 401);
+    assert.equal(await denied.text(), UNAUTH);
     const r = await send(ip('inv-a1'), { ...await signedHeaders({ ...k, path: ip('inv-a1'), viewerToken: s.tokens.demo }),
       referer: 'https://evil.example/', 'sec-fetch-site': 'cross-site', 'sec-fetch-mode': 'navigate', 'sec-fetch-dest': 'document' });
     assert.equal(r.status, 200);

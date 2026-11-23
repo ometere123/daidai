@@ -53,7 +53,7 @@ npm run seed           # wipes and seeds .wrangler/local-d1; writes .dev.vars an
 npm run dev            # serves the seeded Worker on 127.0.0.1:8787 (prints only the port)
 ```
 
-`wrangler` is a devDependency only for local `wrangler dev`/types; tests and scripts never invoke it. **Never run
+The local prototype uses Miniflare. The optional Wrangler CLI is not installed by this package. **Never run
 `wrangler deploy`, `wrangler login` or any `--remote` command from this package.**
 
 Seeded identities (`npm run seed`): tenant-a `demo-viewer` may read `inv-a1` (no attempts), `inv-a2` (hashless,
@@ -75,7 +75,7 @@ generated at seed time (`viem generatePrivateKey`). Sessions expire 8 hours afte
 
 ## D1 vs node:sqlite (A5–A8)
 
-All findings below are from tests against local D1 in workerd (Miniflare 3), not assumed from node:sqlite.
+All findings below are from tests against local D1 in workerd (Miniflare), not assumed from node:sqlite.
 
 What **held** on D1 (test/d1-lineage.test.ts): the shared triggers apply unchanged statement by statement and enforce
 immutable identity, set-once hash, unique hash, `INSERT/UPDATE OR REPLACE` guards (attempt id, operation key, hash,

@@ -1,3 +1,4 @@
+import { localProduct } from '../../../lib/product';
 import type { Metadata } from 'next';
 import { TokenAmount } from '../../ui';
 import { requirePrivate } from '../../../lib/private';
@@ -14,6 +15,7 @@ export default async function InvoicesPage() {
       <p className="meta">Server-rendered from the Daidai API. No wallet, signing or payment actions exist here.</p>
     </div>
     <h1 className="title">Invoices</h1>
+    {localProduct() && <nav aria-label="Customer workspace"><a href="/merchant">Merchant workspace</a>{' · '}<a href="/pay">Payer review</a></nav>}
     {invoices === null ? <div className="panel" role="status">Invoices are not available right now.</div>
       : invoices.length === 0 ? <div className="panel" role="status" data-result="empty">No invoices are shared with you yet.</div>
       : <ul className="panel" aria-label="Invoices" style={{ listStyle: 'none', margin: 0 }}>

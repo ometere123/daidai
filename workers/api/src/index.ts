@@ -12,7 +12,7 @@ import { RateLimiter, handle, parseServiceKeys } from './handler.ts';
 export interface Env {
   DB: D1Like; DAIDAI_SERVICE_KEYS?: string; DAIDAI_AUDIENCE: string;
   /** Optional, unset by default. https only (http://127.0.0.1 for local tests). */
-  DAIDAI_CHAIN_RPC_URL?: string; DAIDAI_ATTRIBUTION_CODE?: string;
+  DAIDAI_LOCAL_PRODUCT?: string; DAIDAI_CHAIN_RPC_URL?: string; DAIDAI_ATTRIBUTION_CODE?: string;
 }
 
 // Per isolate (see README): fast-path replay window and rate limiter. The authoritative replay store is D1 service_nonces.
@@ -24,6 +24,7 @@ export default {
     return handle(request, {
       repos: () => d1Repositories(env.DB),
       db: () => env.DB,
+      localProduct: env.DAIDAI_LOCAL_PRODUCT === 'isolated-miniflare',
       chain: () => chainFromEnv(env),
       keys: () => parseServiceKeys(env.DAIDAI_SERVICE_KEYS),
       audience: env.DAIDAI_AUDIENCE,

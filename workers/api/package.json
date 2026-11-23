@@ -9,16 +9,23 @@
     "seed": "npm run build && node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/seed-local.mjs",
     "dev": "npm run build && node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/dev-server.mjs",
     "invite": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/invite.mjs",
-    "revoke-sessions": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/revoke-sessions.mjs"
+    "revoke-sessions": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/revoke-sessions.mjs",
+    "migrate:local": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/migrate-local.mjs"
   },
   "devDependencies": {
     "@celo/attribution-tags": "0.5.0",
     "@cloudflare/workers-types": "4.20250718.0",
     "@types/node": "22.20.5",
-    "esbuild": "0.25.12",
-    "miniflare": "3.20250718.3",
+    "esbuild": "0.28.2",
+    "miniflare": "4.20260730.0",
     "typescript": "5.9.3",
-    "viem": "2.45.0",
-    "wrangler": "3.114.17"
+    "viem": "2.58.4"
+  },
+  "overrides": {
+    "miniflare": {
+      "undici": "7.30.1"
+    },
+    "zod": "4.6.6",
+    "sharp": "0.35.5"
   }
 }

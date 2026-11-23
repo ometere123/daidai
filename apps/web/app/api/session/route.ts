@@ -1,3 +1,4 @@
+import { productCookie } from '../../../lib/product';
 /** POST /api/session: exchange an invitation for a session (P10.5). Origin-checked; uniform failure; never logs input. */
 import { NextResponse, type NextRequest } from 'next/server';
 import { appEnabled, privateHeaders } from '../../../lib/app-gate';
@@ -23,6 +24,7 @@ export async function POST(request: NextRequest) {
   if (result.kind !== 'session' || maxAge === null) return go('/login?e=1');
   const response = go('/invoices');
   response.cookies.set(SESSION_COOKIE, result.token, { ...cookieAttributes, maxAge });
+  response.cookies.set(productCookie, '', { ...cookieAttributes, maxAge: 0 });
   return response;
 }
 

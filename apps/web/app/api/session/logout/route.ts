@@ -1,3 +1,4 @@
+import { productCookie } from '../../../../lib/product';
 /** POST /api/session/logout: revoke at the Worker and clear the cookie. Origin-checked. GET never logs out. */
 import { NextResponse, type NextRequest } from 'next/server';
 import { appEnabled, privateHeaders } from '../../../../lib/app-gate';
@@ -17,6 +18,7 @@ export async function POST(request: NextRequest) {
   }
   const response = new NextResponse(null, { status: 303, headers: { ...privateHeaders, location: '/login' } });
   response.cookies.set(SESSION_COOKIE, '', { ...cookieAttributes, maxAge: 0 });
+  response.cookies.set(productCookie, '', { ...cookieAttributes, maxAge: 0 });
   return response;
 }
 

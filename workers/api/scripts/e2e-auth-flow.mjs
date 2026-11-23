@@ -2,6 +2,7 @@
 // production build -> real Chromium. Login with a single-use invitation, list, detail, cross-tenant denial, logout,
 // invitation reuse, and Preview gating. Local only; prints no codes, tokens or keys.
 // Prereqs: workers/api: npm run seed (invitations are single-use, so re-seed before each run) ; apps/web: npm run build. Usage: node workers/api/scripts/e2e-auth-flow.mjs
+import { exerciseProduct } from './e2e-product.mjs';
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -13,6 +14,7 @@ const W = resolve(here, '..'), WEB = resolve(here, '../../../apps/web'), ROOT = 
 const { chromium } = createRequire(resolve(ROOT, 'package.json'))('playwright-core');
 const id = JSON.parse(readFileSync(W + '/.wrangler/demo-identities.json', 'utf8'));
 const codes = id.invitations['demo-viewer'];
+const product = process.argv.includes('--product');
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail ? ' — ' + detail : '')); };
 const wait = async (url, ok = r => r.status < 500) => { for (let i = 0; i < 80; i++) { try { if (ok(await fetch(url, { redirect: 'manual' }))) return; } catch {} await new Promise(r => setTimeout(r, 500)); } throw Error('timeout ' + url); };
@@ -27,9 +29,10 @@ try {
   const executablePath = process.env.DAIDAI_CHROMIUM_PATH ?? [
     'C:/Program Files/Google/Chrome/Application/chrome.exe', '/opt/pw-browsers/chromium', '/usr/bin/chromium',
   ].find(existsSync);
-  browser = await chromium.launch({ executablePath, args: ['--disable-extensions'] });
+  const headed = process.argv.includes('--headed');
+  browser = await chromium.launch({ executablePath, headless: !headed, slowMo: headed ? 180 : 0, args: ['--disable-extensions'] });
   await wait('http://127.0.0.1:8787/v1/health', r => r.status === 401);
-  const web = startWeb(3400, { DAIDAI_APP_ENABLED: '1' }); procs.push(web);
+  const web = startWeb(3400, { DAIDAI_APP_ENABLED: '1', DAIDAI_LOCAL_PRODUCT: product ? '1' : '0', DAIDAI_LOCAL_TEXTILE_PREVIEW: '0' }); procs.push(web);
   await wait('http://127.0.0.1:3400/');
   const base = 'http://127.0.0.1:3400';
   const ctx = await browser.newContext();
@@ -80,6 +83,7 @@ try {
   await page.goto(base + '/');
   check('fixture demo at / unchanged (Demo workspace strip)', /Demo workspace/.test(await page.textContent('body')));
   const sessionCookie = (await ctx.cookies()).find(c => c.name === '__Host-daidai_session');
+  if (product) await exerciseProduct({ browser, base, invitations: id.invitations, check, serviceSecret: id.service.secret });
   kill(web);
 
   // Preview without explicit access: 404 even with a valid session cookie.

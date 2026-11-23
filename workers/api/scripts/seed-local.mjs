@@ -5,6 +5,7 @@
 //                                               direct viewer tokens for the lead's frontend demo
 // No network, no remote D1, no Cloudflare account. Re-running wipes and re-seeds.
 import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { applyProductSchema } from '../src/product-schema.ts';
 import { createInvitation } from '../src/d1-auth.ts';
 import { AUDIENCE, seed, serviceKey, startWorker } from '../test/fixtures.ts';
 import { PORT, devVarsFile, identitiesFile, persistDir, root } from './local-paths.mjs';
@@ -14,6 +15,8 @@ mkdirSync(persistDir, { recursive: true });
 const key = serviceKey();
 const { mf, db } = await startWorker({ keys: { [key.keyId]: key.secret }, persist: persistDir });
 const s = await seed(db);
+await applyProductSchema(db);
+await db.prepare("INSERT INTO product_merchants VALUES ('tenant-a','demo-viewer'),('tenant-b','viewer-b')").run();
 // P10.5: invitations (12 h TTL here so the local demo has time; the operator CLI defaults to 15 min). Codes go only to the
 // gitignored identities file.
 const invitations = {};

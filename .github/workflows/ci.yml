@@ -222,7 +222,7 @@ jobs:
           npm --prefix apps/web ci
           npm --prefix apps/web run build
           npm --prefix workers/api run seed
-          node workers/api/scripts/e2e-auth-flow.mjs
+          node workers/api/scripts/e2e-auth-flow.mjs --product
 
   secret-scan:
     runs-on: ubuntu-24.04
