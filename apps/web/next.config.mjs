@@ -13,6 +13,6 @@ export default {
       { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
       { key: 'X-Frame-Options', value: 'DENY' },
     ];
-    return ['/merchant/:path*', '/pay'].map(source => ({ source, headers }));
+    return ['/merchant/:path*', '/invoices/:path*', '/activity', '/pay'].map(source => ({ source, headers }));
   },
 };

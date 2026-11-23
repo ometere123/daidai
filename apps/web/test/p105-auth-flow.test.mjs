@@ -192,7 +192,7 @@ test('S4: environment gating — 404 without the flag even with a valid session;
       }
       const post = await fetch(s.base + '/api/session', { method: 'POST', redirect: 'manual', headers: { origin: s.base, 'content-type': 'application/x-www-form-urlencoded' }, body: 'invitation=' + issueInvitation() });
       assert.equal(post.status, 404, v.name + ' login handler');
-      const home = await visit(ctx, s.base + '/');
+      const home = await visit(ctx, s.base + '/demo');
       assert.equal(home.status, 200); assert(home.text.includes('Demo workspace'));
       await ctx.close();
     } finally { s.stop(); }
@@ -220,7 +220,7 @@ test('S2, S3, U1, U2: login → list → detail → logout, cookie flags, CSRF, 
   try {
     const ctx = await newContext();
     // U2: fixture demo unchanged.
-    const home = await visit(ctx, s.base + '/');
+    const home = await visit(ctx, s.base + '/demo');
     assert(home.text.includes('Demo workspace'), 'fixture demo strip missing');
     assert(!home.text.includes('Authoritative · read-only'));
 

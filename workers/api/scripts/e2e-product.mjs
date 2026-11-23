@@ -67,17 +67,16 @@ export async function exerciseProduct({ browser, base, invitations, check, servi
     const opened = await submit(p, 'Review shared invoice');
     await p.getByRole('heading', { name: 'Committed invoice' }).waitFor();
     const payerBody = await body(p);
-    check('P11 payer sees the scoped commitment and simulated all-in debit', opened.status() === 303 &&
-      /1500 cNGN/.test(payerBody) && /1\.001 USDt/.test(payerBody) && /missing verified authorization/.test(payerBody));
+    check('P11 payer sees the scoped commitment and honest quote unavailability', opened.status() === 303 &&
+      /1500 cNGN/.test(payerBody) && /Quote unavailable/.test(payerBody) && /recipient consent are outstanding/.test(payerBody));
     const payerResponse = await p.reload();
     check('P11 mobile review fits without horizontal overflow', await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     check('P11 review is private and browser HTML omits service and share keys',
       /no-store|private/.test(payerResponse?.headers()['cache-control'] ?? '') &&
       !(await p.content()).includes(serviceSecret) && !(await p.content()).includes(href.split('#')[1]));
 
-    await p.getByRole('link', { name: 'View a simulated unknown payout' }).click();
-    await p.getByText('Simulation · Needs reconciliation', { exact: true }).waitFor();
-    check('P11 unknown evidence keeps payout separate and exposes no retry or settled state', /separate exact cNGN/.test(await body(p)) &&
+    await p.goto(base + '/pay?scenario=unknown');
+    check('P11 unknown evidence keeps payout separate and exposes no retry or settled state', /Not settled/.test(await body(p)) && !(await body(p)).includes('Simulation ·') &&
       !(await p.getByRole('button', { name: /retry|settled/i }).count()) && !(await body(p)).includes('Payment complete'));
     await submit(m, 'Revoke payment links');
     await p.reload();

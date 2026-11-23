@@ -13,3 +13,5 @@ Checkpoint 0. Next: public route shell and authenticated navigation. No P13 test
 Checkpoint 1. Added focused landing and shared navigation. Moved the existing fixture workspace to /demo and updated browser targets. Verification pending. Next: wire dedicated invoice and activity routes.
 
 Checkpoint 2. Dedicated creation, invoice detail and activity routes reuse authenticated D1 and authoritative evidence. New canonical invoice paths preserve the older merchant routes. Wallet readiness uses only a user-initiated chain ID read. Tests pending. Next: replace payer simulations and connect live observation.
+
+Checkpoint 3. Payer now requests only validated live Textile indicative pricing and shows Quote unavailable on failure. Synthetic payout activation was removed from the authenticated route. Public registration verification checks chain, receipt, two canonical reads, ERC-721 mint and finality on Forno and Ankr. Next: assemble public proof and rule audit.
