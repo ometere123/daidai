@@ -55,3 +55,10 @@ node workers/api/scripts/e2e-auth-flow.mjs --product
 ```
 
 Next is dependency remediation and final security/operational review.
+
+
+## Checkpoint 6
+
+`820e4ac` added the browser integration. The next changes bind share capability generation to server-side entropy and the authenticated session, narrow merchant checks on D1 mutations, and apply explicit private/no-store and no-referrer headers on product views. The browser test now checks the narrow viewport for overflow. The extra fixed-endpoint Textile transport raises the quote and transport contract suite to 9/9. Its credentialless external probe returned unavailable, so the demo remains deterministic.
+
+The earlier CI run exposed a NodeNext import-resolution mismatch. The root-compiled server imports now use explicit TypeScript extensions. Final CI and the updated dependency validation are pending. Next actions are the Worker toolchain audit, rerunning the integrated flow and recording exact-head CI.

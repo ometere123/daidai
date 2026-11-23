@@ -20,20 +20,20 @@ export default async function MerchantInvoice({ params, searchParams }: { params
     <a href="/merchant">Merchant workspace</a>
     <h1 className="title">Invoice terms</h1>
     <ProductError result={result} />
-    <section className="panel"><h2>{revision.state === 'cancelled' ? 'Cancelled' : expired ? 'Expired' : revision.state === 'draft' ? 'Draft' : 'Committed · awaiting approvals'}</h2>
+    <section className="panel product-panel"><h2>{revision.state === 'cancelled' ? 'Cancelled' : expired ? 'Expired' : revision.state === 'draft' ? 'Draft' : 'Committed · awaiting approvals'}</h2>
       <Terms revision={revision} />
     </section>
-    {revision.state === 'draft' && <section className="panel"><h2>Edit draft</h2><DraftForm id={id} revision={revision} />
+    {revision.state === 'draft' && <section className="panel product-panel"><h2>Edit draft</h2><DraftForm id={id} revision={revision} />
       {!expired && <MutationButton revision={revision} kind="commit" label="Commit invoice terms" />}
     </section>}
-    {revision.state === 'committed' && !expired && <section className="panel">
+    {revision.state === 'committed' && !expired && <section className="panel product-panel">
       <h2>Payment instructions</h2><p>Share with an authenticated payer. Links expire within 24 hours and grant invoice review only.</p>
       <ShareFragment merchant />
       <MutationButton revision={revision} kind="share" label="Generate payment link" />
       <MutationButton revision={revision} kind="revoke" label="Revoke payment links" />
     </section>}
     {revision.state !== 'cancelled' && <MutationButton revision={revision} kind="cancel" label="Cancel invoice" />}
-    <section className="panel"><h2>Revision history</h2><ol>{history?.revisions.map(r => <li key={r.revision}>
+    <section className="panel product-panel"><h2>Revision history</h2><ol>{history?.revisions.map(r => <li key={r.revision}>
       Revision {r.revision} · {r.state} · <time dateTime={new Date(r.at).toISOString()}>{new Date(r.at).toISOString()}</time>
     </li>)}</ol></section>
   </>;

@@ -20,14 +20,14 @@ export default async function PayerReview({ searchParams }: { searchParams: Prom
   return <>
     <h1 className="title">Payer review</h1>
     <p className="meta">Isolated local workspace · no funds move</p>
-    <section className="panel"><h2>Open a payment link</h2><ShareFragment />
+    <section className="panel product-panel"><h2>Open a payment link</h2><ShareFragment />
       {(result || code && !invoice) && <p role="alert">These payment instructions are unavailable. Ask the merchant for an active link.</p>}
     </section>
     {invoice && <>
-      <section className="panel"><h2>Committed invoice</h2><Terms revision={invoice} />
+      <section className="panel product-panel"><h2>Committed invoice</h2><Terms revision={invoice} />
         <p className="meta" style={{ overflowWrap: 'anywhere' }}>Celo Mainnet (42220) · USDt {usdt} · cNGN {cngn}</p>
       </section>
-      <section className="panel"><h2>Simulated Textile preview</h2>
+      <section className="panel product-panel"><h2>Simulated Textile preview</h2>
         <p>Indicative demo data. No liquidity was reserved and no firm quote exists.</p>
         {quote?.kind === 'indicative' ? <dl>
           <dt>Conversion amount before fee</dt><dd>{amount(quote.base)} USDt</dd>
@@ -36,11 +36,11 @@ export default async function PayerReview({ searchParams }: { searchParams: Prom
           <dt>Local review expires (UTC)</dt><dd>{new Date(quote.reviewUntil).toISOString()}</dd>
         </dl> : <p role="status">{quote?.kind === 'over-cap' ? 'Blocked: estimated debit exceeds the invoice cap.' : 'Preview unavailable or expired.'}</p>}
       </section>
-      <section className="panel"><h2>Authorization and wallet readiness</h2>
+      <section className="panel product-panel"><h2>Authorization and wallet readiness</h2>
         <ul><li>Invoice approval: missing verified authorization</li><li>Recipient consent: missing verified authorization</li>
           <li>Wallet, allowance and gas: unchecked. Wallet interaction is disabled.</li></ul>
       </section>
-      <section className="panel"><h2>Settlement review</h2>
+      <section className="panel product-panel"><h2>Settlement review</h2>
         <ol><li>Conversion: USDt to exact cNGN in the Daidai taker wallet.</li>
           <li>Payout: a separate exact cNGN transfer to the committed recipient.</li></ol>
         <p>No finalized conversion or payout evidence is attached to this invoice.</p>

@@ -564,3 +564,23 @@ button:disabled { cursor: not-allowed; }
   .review .action-bar { position: static; margin: 0; box-shadow: none; border-radius: var(--radius-panel); min-height: 0; }
 }
 .gauge-tick.last { margin-left: -1px; }
+
+
+/* P11 invoice workspace */
+.product-panel h2 { font-weight: 600; font-size: 1.125rem; }
+.product-panel form { max-width: 34rem; }
+.product-panel label { font-size: .875rem; font-weight: 500; }
+.product-panel label :is(input, select) {
+  width: 100%; min-height: 44px; margin: 4px 0;
+  border: 1px solid var(--color-rule); border-radius: var(--radius-control);
+  background: var(--color-paper); padding: 8px 12px;
+}
+.product-panel dl { display: grid; gap: 6px 18px; }
+.product-panel dt { color: var(--color-ink-muted); }
+.product-panel dd { font-weight: 500; }
+.product-panel li + li { margin-top: 6px; }
+.product-panel a { text-decoration: underline; text-underline-offset: 4px; }
+.product-panel [role="alert"] { color: var(--color-error); }
+@media (min-width: 650px) {
+  .product-panel dl { grid-template-columns: minmax(9rem, 1fr) minmax(0, 2fr); }
+}

@@ -66,6 +66,7 @@ export async function exerciseProduct({ browser, base, invitations, check, servi
     check('P11 payer sees the scoped commitment and simulated all-in debit', opened.status() === 303 &&
       /1500 cNGN/.test(payerBody) && /1\.001 USDt/.test(payerBody) && /missing verified authorization/.test(payerBody));
     const payerResponse = await p.reload();
+    check('P11 mobile review fits without horizontal overflow', await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     check('P11 review is private and browser HTML omits service and share keys',
       /no-store|private/.test(payerResponse?.headers()['cache-control'] ?? '') &&
       !(await p.content()).includes(serviceSecret) && !(await p.content()).includes(href.split('#')[1]));

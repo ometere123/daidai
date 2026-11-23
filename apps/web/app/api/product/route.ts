@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { privateHeaders } from '../../../lib/app-gate';
-import { productCall } from '../../../lib/daidai-api';
+import { deriveProductShare, productCall } from '../../../lib/daidai-api';
 import { sameOrigin } from '../../../lib/origin';
 import { localProduct, productCookie } from '../../../lib/product';
 import { cookieAttributes, readSessionToken } from '../../../lib/session';
@@ -47,7 +47,8 @@ export async function POST(request: NextRequest) {
   if (kind !== 'save' && kind !== 'commit' && kind !== 'cancel' && kind !== 'share' && kind !== 'revoke') return reject(400);
   if (!/^[0-9a-f]{32}$/.test(id)) return reject(400);
   const expected = Number(form.get('expected'));
-  const code = form.get('code');
+  const code = kind === 'share' && key ? deriveProductShare(id, key, session) : null;
+  if (kind === 'share' && !code) return reject(400);
   const draft = kind === 'save' ? {
     target: units(form.get('target') ?? ''), cap: units(form.get('cap') ?? ''), recipient: form.get('recipient'),
     approver: form.get('approver'), expiry: Number(form.get('expiry')),

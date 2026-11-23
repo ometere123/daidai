@@ -1,4 +1,4 @@
-import { appEnabled } from './app-gate';
+import { appEnabled } from './app-gate.ts';
 
 export function localProduct() {
   const base = process.env.DAIDAI_API_BASE_URL;

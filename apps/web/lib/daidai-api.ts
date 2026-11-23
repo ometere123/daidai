@@ -1,5 +1,6 @@
+import { createHmac } from 'node:crypto';
 import { parseProduct, parseProductReply, productPath } from '../../../src/product-contract.ts';
-import { localProduct } from './product';
+import { localProduct } from './product.ts';
 /**
  * Server-only typed client for the Daidai API (P10.4 read-only, P10.5 session exchange and invoice list).
  * Config comes from server environment variables only (never NEXT_PUBLIC_*). Never logs tokens, keys or bodies.
@@ -115,4 +116,12 @@ export async function productCall(input: Record<string, unknown>, viewerToken: s
   const wire = { ...input, version: 'p11.v1' };
   if (!parseProduct(wire)) return null;
   return parseProductReply(await signedCall('POST', productPath, { body: JSON.stringify(wire), viewerToken }));
+}
+
+
+export function deriveProductShare(id: string, operationKey: string, viewerToken: string): string | null {
+  const config = readConfig();
+  const hex = /^[0-9a-f]{32}$/;
+  if (!config || !localProduct() || !hex.test(id) || !hex.test(operationKey) || !tokenPattern.test(viewerToken)) return null;
+  return createHmac('sha256', config.key).update(JSON.stringify(['daidai.p11.share.v1', id, operationKey, viewerToken])).digest('base64url');
 }

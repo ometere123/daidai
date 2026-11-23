@@ -64,8 +64,8 @@ export async function product(db: D1Like, viewer: AuthenticatedViewer, raw: stri
   if (request.kind === 'share' || request.kind === 'revoke') {
     if (!current) return reply('denied');
     if (request.kind === 'revoke') {
-      const result = await db.prepare('UPDATE product_shares SET revoked_at=? WHERE tenant=? AND id=? AND revoked_at IS NULL')
-        .bind(now, tenant, id).run();
+      const result = await db.prepare('UPDATE product_shares SET revoked_at=? WHERE tenant=? AND id=? AND revoked_at IS NULL AND EXISTS (SELECT 1 FROM product_merchants WHERE tenant=? AND viewer=?)')
+        .bind(now, tenant, id, tenant, owner).run();
       if (!result.success) throw Error('revocation unavailable');
       return reply('revoked', [], true);
     }
@@ -73,7 +73,8 @@ export async function product(db: D1Like, viewer: AuthenticatedViewer, raw: stri
     const hash = await sha256Hex(request.code);
     const result = await db.prepare(`INSERT INTO product_shares
       SELECT ?,?,?,?, ?,NULL WHERE ?=(SELECT MAX(revision) FROM product_revisions WHERE tenant=? AND id=?)
-      ON CONFLICT DO NOTHING`).bind(hash, tenant, id, current.revision, Math.min(now + retention, current.expiry), current.revision, tenant, id).run();
+      AND EXISTS (SELECT 1 FROM product_merchants WHERE tenant=? AND viewer=?)
+      ON CONFLICT DO NOTHING`).bind(hash, tenant, id, current.revision, Math.min(now + retention, current.expiry), current.revision, tenant, id, tenant, owner).run();
     if (!result.success) throw Error('sharing unavailable');
     const share = await db.prepare('SELECT 1 FROM product_shares WHERE capability_hash=? AND tenant=? AND id=? AND revision=? AND revoked_at IS NULL AND expires_at>?')
       .bind(hash, tenant, id, current.revision, now).first();

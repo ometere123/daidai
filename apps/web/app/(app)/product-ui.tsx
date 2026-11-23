@@ -40,7 +40,6 @@ export function MutationButton({ revision, kind, label }: { revision: Revision; 
     <input type="hidden" name="kind" value={kind} />
     <input type="hidden" name="expected" value={revision.revision} />
     <input type="hidden" name="key" value={randomBytes(16).toString('hex')} />
-    {kind === 'share' && <input type="hidden" name="code" value={randomBytes(32).toString('base64url')} />}
     <button className="btn" type="submit">{label}</button>
   </form>;
 }

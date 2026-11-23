@@ -1,3 +1,4 @@
+import { textilePreviewSource } from '../src/textile-preview-source.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { cngn, usdt } from '../src/invoice-core.ts';
@@ -32,4 +33,22 @@ test('an expired commitment never calls preview and delayed responses are discar
   assert.equal(calls, 0);
   let t = now;
   assert.deepEqual(await preparePreview(invoice, async () => { t += 30_000; return { data: indicative }; }, () => t), { kind: 'expired' });
+});
+
+
+test('preview transport is pinned to the credentialless non-reserving endpoint', async () => {
+  const source = textilePreviewSource(async (url, options) => {
+    assert.equal(url, 'https://api.textilecredit.com/v2/rfq/preview');
+    assert.equal(options?.method, 'POST');
+    assert.equal(options?.redirect, 'error');
+    assert.equal(options?.credentials, 'omit');
+    assert.equal(new Headers(options?.headers).has('authorization'), false);
+    assert.deepEqual(JSON.parse(String(options?.body)), { chainId: 42220, sellToken: usdt, buyToken: cngn, buyAmount: invoice.target });
+    return Response.json({ data: indicative });
+  });
+  assert.equal((await preparePreview(invoice, source, () => now)).kind, 'indicative');
+});
+test('preview transport fails closed on oversized responses', async () => {
+  const source = textilePreviewSource(async () => new Response('a'.repeat(32_769)));
+  assert.equal((await preparePreview(invoice, source, () => now)).kind, 'unavailable');
 });
