@@ -26,6 +26,8 @@ import { commit } from '../../../src/invoice-core.ts';
 import { projectionSources, type Repositories } from '../../../src/repositories.ts';
 import { NonceWindow, SERVICE_HEADERS, verifyRequest } from '../../../src/service-auth.ts';
 import { authenticateViewer, type AuthenticatedViewer } from '../../../src/viewer-access.ts';
+import { product } from './product.ts';
+import { productPath } from '../../../src/product-contract.ts';
 import type { ChainConfig } from './chain-config.ts';
 import { claimNonce, d1SessionAuthenticator, exchangeInvitation, pruneNonces, revokeSession } from './d1-auth.ts';
 import type { D1Like } from './d1-schema.ts';
@@ -57,6 +59,7 @@ export type Deps = Readonly<{
   nonces: NonceWindow; limiter: RateLimiter; now: () => number; log: (line: LogLine) => void;
   /** Optional read-only chain reader (chain-config.ts). Absent by default: operations stay unknown. */
   chain?: () => ChainConfig | undefined;
+  localProduct?: boolean;
   /** Probability source for opportunistic nonce pruning (default Math.random; prune when < PRUNE_PROBABILITY). */
   random?: () => number;
   /** Override for the stricter invitation-exchange bucket (default: one per isolate). */
@@ -146,11 +149,20 @@ export async function handle(request: Request, deps: Deps): Promise<Response> {
         allow = p === '/v1/sessions' ? 'POST' : p === '/v1/sessions/current' ? 'DELETE' : 'GET';
       } catch { /* parseRequest reports it */ }
       if (request.method === 'OPTIONS') return fail('method-not-allowed');
-      const parsed = parseRequest(request.method, request.url, request.headers);
+      const url = new URL(request.url);
+      const productRequest = url.pathname === productPath;
+      if (productRequest) {
+        if (!deps.localProduct || url.hostname !== '127.0.0.1') return fail('not-found-or-forbidden');
+        allow = 'POST';
+        if (request.method !== 'POST') return fail('method-not-allowed');
+        if (url.search || request.headers.get('content-type') !== 'application/json') return fail('invalid-request');
+      }
+      const parsed = productRequest ? { route: 'product' as const, viewerToken: request.headers.get(VIEWER_HEADER) ?? '' }
+        : parseRequest(request.method, request.url, request.headers);
       if (parsed === 'method-not-allowed' || parsed === 'invalid-request') return fail(parsed);
       route = typeof parsed === 'string' ? 'invoice' : parsed.route;
       let body = '';
-      if (route === 'session-create') {
+      if (route === 'session-create' || route === 'product') {
         const read = await readBody(request, MAX_BODY_BYTES);
         if (read === null) return fail('invalid-request');
         body = read;
@@ -158,7 +170,7 @@ export async function handle(request: Request, deps: Deps): Promise<Response> {
       const keys = deps.keys();
       if (!keys) return fail('unavailable');
       const nowMs = deps.now();
-      const viewerToken = route === 'invoice' || route === 'invoice-list' || route === 'session-revoke' || route === 'session-create' ? request.headers.get(VIEWER_HEADER) ?? '' : '';
+      const viewerToken = route === 'product' || route === 'invoice' || route === 'invoice-list' || route === 'session-revoke' || route === 'session-create' ? request.headers.get(VIEWER_HEADER) ?? '' : '';
       const ok = await verifyRequest({ keys, headers: request.headers, method: request.method, path: new URL(request.url).pathname,
         body, viewerToken, nowMs, nonces: deps.nonces });
       if (!ok) return fail('unauthenticated-service');
@@ -186,6 +198,11 @@ export async function handle(request: Request, deps: Deps): Promise<Response> {
       }
       const viewer = await authenticateViewer(d1SessionAuthenticator(db), parsed.viewerToken, nowMs);
       if (!viewer) return fail('not-found-or-forbidden');
+      if (parsed.route === 'product') {
+        const result = await product(db, viewer, body, nowMs);
+        const status = result.kind === 'denied' ? 404 : result.kind === 'conflict' ? 409 : result.kind === 'invalid' ? 400 : 200;
+        return new Response(JSON.stringify(result), { status, headers: responseHeaders });
+      }
       if (parsed.route === 'invoice-list') {
         return respond({ apiVersion: 'v1', kind: 'invoice-list', invoices: await listInvoices(db, viewer) });
       }

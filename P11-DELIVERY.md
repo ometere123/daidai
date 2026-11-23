@@ -16,3 +16,9 @@ The base is the P10.5 normal merge commit. Its approved head passed all seven CI
 - CI must pass on the final head. Production identity, deployment and any financial execution require separate review and authorization.
 
 Next action is to implement the versioned invoice contract and local D1 persistence. Public Celo RPC and official Textile interfaces still need qualification.
+
+## Checkpoint 1
+
+`ab5fe96` opened draft PR #8. Versioned product contracts and the loopback Worker route now use existing service HMAC, replay and session guards. Product D1 tables track immutable revisions, idempotency, merchant access and hashed share records. Product commitments use the existing invoice digest and do not enter financial attempt stores.
+
+Tests are pending for this checkpoint. Next action is to wire the authenticated merchant and payer pages, then exercise the Worker and browser paths. No external service is needed for this slice.
