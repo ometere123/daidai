@@ -9,7 +9,7 @@ if (typeof window !== 'undefined') throw new Error('internal-demo is server-only
 
 export function internalDemoEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   if (env.DAIDAI_INTERNAL_DEMO !== '1') return false;
-  if (env.VERCEL_ENV === 'production') return false;
+  if (String(env.VERCEL_ENV ?? '').trim().toLowerCase() === 'production') return false;
   if (env.NODE_ENV === 'production' && env.DAIDAI_INTERNAL_DEMO_ALLOW_PROD_BUILD !== '1') return false;
   return true;
 }

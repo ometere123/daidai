@@ -74,6 +74,9 @@ export const LINEAGE_SCHEMA_STATEMENTS: readonly string[] = Object.freeze([
   `CREATE TRIGGER IF NOT EXISTS attempt_close_once BEFORE UPDATE OF closed ON attempts
   WHEN OLD.closed IS NOT NULL AND NEW.closed IS NOT OLD.closed
   BEGIN SELECT RAISE(ABORT, 'attempt closure is final'); END`,
+  `CREATE TRIGGER IF NOT EXISTS attempt_closed_terminal BEFORE UPDATE OF closed ON attempts
+  WHEN OLD.closed IS NOT NULL
+  BEGIN SELECT RAISE(ABORT, 'attempt closure is final'); END`,
   `CREATE TRIGGER IF NOT EXISTS attempt_no_delete BEFORE DELETE ON attempts
   BEGIN SELECT RAISE(ABORT, 'attempts are retained'); END`,
   `CREATE TRIGGER IF NOT EXISTS events_append_only_update BEFORE UPDATE ON attempt_events

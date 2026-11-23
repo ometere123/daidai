@@ -158,6 +158,7 @@ export class D1LineageWriter {
     check(idPattern.test(closedBy), 'closure requires an accountable operator');
     const r = await this.row(attemptId);
     check(r, 'unknown attempt');
+    check(r.closed === null, 'attempt closure is final');
     check(r.hash !== null, 'verified-final requires a recorded transaction hash');
     const latest = await this.db.prepare(`SELECT json_extract(detail, '$.result') AS result, json_extract(detail, '$.hash') AS hash
       FROM attempt_events WHERE attempt_id = ? AND kind = 'verification' ORDER BY seq DESC LIMIT 1`).bind(attemptId).first<{ result: string; hash: string }>();

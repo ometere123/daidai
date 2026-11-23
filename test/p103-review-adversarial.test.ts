@@ -130,7 +130,7 @@ test('projector: a forged reconciled-not-landed row (triggers dropped in a scrat
   const { file, store, raw } = fresh(t);
   finalize(store);
   const db = raw();
-  db.exec('DROP TRIGGER attempt_close_once; DROP TRIGGER reconciled_not_landed_disabled; DROP TRIGGER closed_attempt_frozen; DROP TRIGGER operation_open_or_final');
+  db.exec('DROP TRIGGER attempt_close_once; DROP TRIGGER attempt_closed_terminal; DROP TRIGGER reconciled_not_landed_disabled; DROP TRIGGER closed_attempt_frozen; DROP TRIGGER operation_open_or_final');
   db.exec(`UPDATE attempts SET closed = 'reconciled-not-landed' WHERE attempt_id = 'pay-1'`);
   rawInsert(db, 'INSERT', { attempt_id: 'pay-2' });
   const reader = new AttemptLineageReader(file); t.after(() => reader.close());
