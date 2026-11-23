@@ -404,8 +404,11 @@ describe('ADV-2 viewer, session and permission', () => {
     for (const [id, tok] of [['inv-a1', s.tokens.demo], ['inv-a2', s.tokens.demo], ['inv-a3', s.tokens.demo], ['inv-b1', s.tokens.demo],
       ['inv-a1', s.tokens.expired], ['inv-t-forged-final', s.tokens.demo]] as const) await h.call(id, tok);
     assert.ok(h.sql.length > 10);
-    // P10.5: the only writes are the global nonce claim and the session idle slide (auth tables only, single statements).
-    for (const q of h.sql) assert.match(q.trimStart(), /^SELECT\b|^INSERT INTO service_nonces \(key_id, nonce, seen_at_ms\) VALUES|^UPDATE viewer_sessions SET idle_expires_at_ms = /, q);
+    // P10.5: the only writes are the global nonce claim, the probabilistic (~1%) pruning of expired nonces, and the
+    // session idle slide: auth/replay tables only, single statements. (P13: the prune was missing from this allowlist,
+    // which made the test fail whenever the random prune fired during it.) Financial tables are never written.
+    for (const q of h.sql) assert.match(q.trimStart(), /^SELECT\b|^INSERT INTO service_nonces \(key_id, nonce, seen_at_ms\) VALUES|^DELETE FROM service_nonces WHERE seen_at_ms < \?$|^UPDATE viewer_sessions SET idle_expires_at_ms = /, q);
+    assert.ok(!h.sql.some(q => /\b(attempts|attempt_events|taker_nonces|invoices|signatures)\b/.test(q) && !/^SELECT\b/.test(q.trimStart())), 'no financial-table writes');
     assert.ok(!h.sql.includes('BATCH'));
   });
 
