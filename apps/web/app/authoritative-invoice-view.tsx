@@ -20,6 +20,15 @@ const reasons = {
   'missing-hash': 'The attempt has no verified transaction hash',
   unavailable: 'Independent evidence is unavailable',
   'not-final': 'The transaction block is not finalized',
+  'lineage-unresolved': 'The attempt’s historical revision and authorization were not recorded; retained for reconciliation',
+  'multiple-attempts': 'More than one open attempt exists for this operation; retained for reconciliation',
+} as const;
+
+const authorizationLabels = {
+  verified: 'Verified',
+  'verified-at-execution': 'Valid when executed (now expired)',
+  stale: 'Not currently valid',
+  unverified: 'Unverified',
 } as const;
 
 const observedTime = new Intl.DateTimeFormat('en-NG', {
@@ -35,8 +44,8 @@ function AuthorizationFacts({ title, summary }: { title: string; summary: Author
   const evidence = summary.evidence;
   return <section className="panel">
     <h3>{title}</h3>
-    <StatusMark mark={summary.state === 'verified' ? 'confirmed' : 'waiting'}>
-      {summary.state === 'verified' ? 'Verified' : summary.state === 'stale' ? 'Observation stale' : 'Unverified'}
+    <StatusMark mark={summary.state === 'verified' || summary.state === 'verified-at-execution' ? 'confirmed' : 'waiting'}>
+      {authorizationLabels[summary.state]}
     </StatusMark>
     <dl className="kv">
       <dt>Purpose</dt><dd>{summary.purpose}</dd>
@@ -46,6 +55,7 @@ function AuthorizationFacts({ title, summary }: { title: string; summary: Author
         <dt>Audience</dt><dd>{evidence.audience}</dd>
         <dt>Commitment digest</dt><dd className="mono">{evidence.digest}</dd>
         <dt>Expires</dt><dd><ObservationTime ms={evidence.expiresAtMs} /></dd>
+        {summary.executedAtMs ? <><dt>Payments executed by</dt><dd><ObservationTime ms={summary.executedAtMs} /></dd></> : null}
         <dt>Observed</dt><dd><ObservationTime ms={evidence.observedAtMs} /></dd>
         <dt>Source</dt><dd>{evidence.source}</dd>
       </> : null}
@@ -63,9 +73,11 @@ function OperationFacts({ title, operation }: { title: string; operation: Operat
     <dl className="kv">
       {operation.reason ? <><dt>Reason</dt><dd>{reasons[operation.reason]}</dd></> : null}
       {operation.attemptId ? <><dt>Attempt</dt><dd className="mono">{operation.attemptId}</dd></> : null}
+      {operation.recordedRevision !== undefined ? <><dt>Recorded at revision</dt><dd>{operation.recordedRevision}</dd></> : null}
       {evidence ? <>
         <dt>Transaction hash</dt><dd className="mono">{evidence.hash}</dd>
         <dt>Canonical block</dt><dd className="mono">{evidence.blockNumber} · {evidence.blockHash}</dd>
+        <dt>Block time</dt><dd><ObservationTime ms={evidence.blockTimestampMs} /></dd>
         <dt>Finalized head</dt><dd className="mono">{evidence.finalizedBlockNumber} · {evidence.finalizedBlockHash}</dd>
         <dt>cNGN amount</dt><dd><TokenAmount value={BigInt(evidence.amountAtomic)} unit="cNGN" tabular /></dd>
         <dt>USDt debit</dt><dd><TokenAmount value={BigInt(evidence.debitAtomic)} unit="USDt" tabular /></dd>
@@ -80,7 +92,7 @@ function OperationFacts({ title, operation }: { title: string; operation: Operat
 
 /** Internal presentation only. A future authenticated server route supplies the validated projection. */
 export function AuthoritativeInvoiceView({ invoice }: { invoice: AuthoritativeInvoiceProjection }) {
-  if (invoice.schemaVersion !== 1 || invoice.source !== 'authoritative' || invoice.execution !== 'disabled') {
+  if (invoice.schemaVersion !== 2 || invoice.source !== 'authoritative' || invoice.execution !== 'disabled') {
     throw new Error('Expected a validated authoritative invoice projection');
   }
   const settled = invoice.settlement === 'settled';

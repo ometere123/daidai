@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/*.test.ts",
-    "typecheck": "tsc --noEmit --strict --target es2022 --module nodenext --allowImportingTsExtensions test/authoritative-invoice.test.ts test/invoice.test.ts test/wallet.test.ts test/security.test.ts test/integration.test.ts src/address-host.ts src/registration-host.ts src/wallet-diagnostic.ts",
+    "typecheck": "tsc --noEmit --strict --target es2022 --module nodenext --allowImportingTsExtensions test/authoritative-invoice.test.ts test/attempt-lineage.test.ts test/p103-boundaries.test.ts test/p103-adversarial.test.ts test/invoice.test.ts test/wallet.test.ts test/security.test.ts test/integration.test.ts src/address-host.ts src/registration-host.ts src/wallet-diagnostic.ts",
     "test:browser": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/*-browser.test.mjs",
     "probe:celo": "node --experimental-strip-types scripts/probe-celo.mjs",
     "address:preflight": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/address-preflight.mjs",
