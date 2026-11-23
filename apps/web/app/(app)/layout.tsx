@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { appEnabled } from '../../lib/app-gate';
 import { SiteNav } from '../site-nav';
 
 export const dynamic = 'force-dynamic';
@@ -14,9 +15,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <span>Daidai workspace</span>
       <span className="top-right">
         <span className="meta" role="note" aria-label="Data source">Authoritative · read-only</span>
-        <form method="post" action="/api/session/logout">
+        {appEnabled() && <form method="post" action="/api/session/logout">
           <button type="submit" className="btn secondary compact">Sign out</button>
-        </form>
+        </form>}
       </span>
     </header>
     <main id="main" className="route" style={{ padding: '16px', display: 'grid', gap: '16px', maxWidth: 1100, margin: '0 auto', width: '100%' }}>
