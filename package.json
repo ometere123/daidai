@@ -9,7 +9,8 @@
     "probe:celo": "node --experimental-strip-types scripts/probe-celo.mjs",
     "address:preflight": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/address-preflight.mjs",
     "wallet:diagnostic": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/wallet-diagnostic.mjs",
-    "registration": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/registration.mjs"
+    "registration": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/registration.mjs",
+    "demo:p12": "node scripts/p12-demo.mjs"
   },
   "dependencies": {
     "@celo/attribution-tags": "0.5.0",

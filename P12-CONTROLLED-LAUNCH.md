@@ -28,3 +28,7 @@ Identity head 3814c3c. Two deterministic provider-policy tests passed. The live 
 ## Textile checkpoint
 
 Celo head ea19f31. The official RFQ documentation distinguishes non-reserving preview from inventory-reserving firm RFQ. P12 has an injectable firm source only and never calls the reservation endpoint. The review reuses the existing signed-envelope parser, commitment/consent checks and Celo reader. It checks exact output, all-in debit and protocol fee, confirmed scoped allowance, balances, both gas budgets, exact tagged simulation and freshness after simulation. The separate payout review requires finalized conversion for the same commitment and separate exact payout verification. Two synthetic preparation tests passed. Next: integrate safety checks and rehearse both demonstrations.
+
+## Demo checkpoint
+
+Textile head 1d11279. Added one local command with separate product and public-chain modes. Product mode builds Next, reseeds disposable D1, reapplies the isolated migration and starts authenticated Chromium. Chain mode performs read-only historical registration observation. The full-stack run is in progress. Next: harden the evidence and provider failure paths, then run exact-head CI.
