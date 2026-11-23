@@ -8,7 +8,8 @@ export default {
   async headers() {
     const headers = [
       { key: 'Cache-Control', value: 'private, no-store, max-age=0' },
-      { key: 'Referrer-Policy', value: 'no-referrer' },
+      // Preserve the Origin header on same-origin native form POSTs. URL fragments are never sent.
+      { key: 'Referrer-Policy', value: 'same-origin' },
       { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
       { key: 'X-Frame-Options', value: 'DENY' },
     ];

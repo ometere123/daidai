@@ -81,3 +81,8 @@ The Worker upgrades Miniflare, esbuild and viem, removes unused Wrangler from th
 `fce0f31` patched root ws and made the Worker fixture types explicit. The final external recheck of the official Textile preview returned HTTP 200 and a validated indicative quote for a synthetic 1,500 cNGN target. The payer page supports this preview only through a server-controlled local opt-in. It sends chain, token pair and requested output amount. The self-contained demo keeps the synthetic source enabled so market availability cannot affect reproduction.
 
 Forno independently returned chain 42220, a finalized head and a matching registration transaction lookup. The canonical receipt lookup returned null. Canonical finality for that transaction could not be established through this endpoint in P11. A qualified provider remains necessary before any settlement evidence may be published. No settlement, firm quote or wallet action occurred.
+
+
+### Browser regression
+
+`7d6a0e0` enabled the optional live indicative preview locally. A fresh Chromium run caught a 403 on native same-origin form submission after the page-level no-referrer change. Product GET responses now keep the origin for same-origin forms and omit cross-origin referrers. The strict POST Origin check still holds, and the share secret stays in the fragment. The full-stack test asserts the create redirect status and validates the path before navigating.

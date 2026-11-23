@@ -34,7 +34,10 @@ export async function exerciseProduct({ browser, base, invitations, check, servi
     await m.getByLabel('Recipient wallet').fill('0x' + '12'.repeat(20));
     await m.getByLabel('Invoice approver wallet').fill('0x' + '34'.repeat(20));
     const created = await submit(m, 'Create draft');
-    const invoice = new URL(created.headers()['location'], base);
+    assert.equal(created.status(), 303, 'create draft must redirect');
+    const location = await created.headerValue('location');
+    assert(location && /^\/merchant\/[a-f0-9]{32}$/.test(location), 'create draft must return the invoice detail location');
+    const invoice = new URL(location, base);
     await m.waitForURL(invoice.href);
     check('P11 persistent draft created with exact cNGN target', await m.getByText('1500 cNGN', { exact: true }).isVisible());
 
