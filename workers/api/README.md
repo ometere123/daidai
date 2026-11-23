@@ -1,4 +1,4 @@
-# Daidai read-only API Worker (P10.4, local prototype)
+# Daidai read-only API Worker (P10.4 + P10.5 sessions, local prototype)
 
 A Cloudflare Worker that serves the P10.3 authoritative invoice projection over Cloudflare D1. It is **read-only,
 non-spending and local-only**: it runs in Miniflare/workerd on this machine and is not deployed anywhere.
@@ -67,6 +67,8 @@ generated at seed time (`viem generatePrivateKey`). Sessions expire 8 hours afte
 | --- | --- | --- |
 | `DB` | D1 binding | `wrangler.toml` (`daidai-local`, placeholder id `00000000-…`: LOCAL ONLY, not provisioned) |
 | `DAIDAI_AUDIENCE` | var (non-secret) | `wrangler.toml`; the EIP-712 audience origin stored signatures were made for |
+| `DAIDAI_CHAIN_RPC_URL` | var, **unset by default** | P10.5 optional read-only chain reader (`src/chain-config.ts` → `src/celo-rpc.ts`). Only `https://…` (or `http://127.0.0.1[:port]` for tests); anything else leaves the hook off. A production endpoint needs owner approval |
+| `DAIDAI_ATTRIBUTION_CODE` | var | Required together with `DAIDAI_CHAIN_RPC_URL`; without it the chain hook stays off |
 | `DAIDAI_SERVICE_KEYS` | **secret** | JSON `{"<keyId>": "<secret ≥ 32 chars>"}`. Locally `.dev.vars` (gitignored, written by the seed script). Remotely it would be `wrangler secret put` (not done in P10.4). Never committed. Missing or malformed → every request 503 |
 
 `wrangler.toml` has `workers_dev = false`, no routes and no custom domain.
@@ -106,12 +108,73 @@ under the same commitment reports "…invoice operation is open or finalized und
 remote D1 behaviour (replication, read replicas and `withSession` consistency were not exercised, by design), and
 time-travel/restore semantics.
 
+## P10.5: sessions, invitations and global replay protection
+
+### Routes (all HMAC-signed over key ID, method, path, timestamp, nonce, SHA-256(body) and SHA-256(viewer token); Origin header → 401)
+
+| Route | Behaviour |
+| --- | --- |
+| `POST /v1/sessions` body `{"invitation":"<code>"}` | Content type must be `application/json` (else 400). Body read with a hard cap of `MAX_BODY_BYTES` (larger, or invalid UTF-8 → 400, before auth). After HMAC + nonce: stricter per-key bucket (429), `parseSessionBody` (400), then one atomic `db.batch`: conditional `UPDATE viewer_invitations SET used_at_ms, session_sha256 … WHERE used_at_ms IS NULL AND expires_at_ms > now` + `INSERT INTO viewer_sessions … SELECT … WHERE session_sha256 = <this token's hash>`. Unknown, used, expired → uniform **403 `invalid-credentials`**. Success → `SessionResponse` with a fresh 256-bit base64url token (stored only as SHA-256), absolute expiry now + 12 h, idle timeout 30 min |
+| `DELETE /v1/sessions/current` (viewer header) | Sets `revoked_at_ms` once. Idempotent; an unknown token also answers `{"kind":"revoked"}` (no oracle). Malformed token → 404 (contract). If D1 cannot acknowledge the write, the server returns 503 and the browser retains its cookie |
+| `GET /v1/invoices` (viewer header) | Permitted invoices of the viewer's tenant (`invoice_permissions` ⨝ `tenant_directory` ⨝ `invoices`, same tenant on every join), `LIMIT MAX_LIST`, ordered by id. Each row's commitment is re-derived with `commit()`; rows whose digest or id do not match are skipped. Returns `{id, revision, targetAtomic: buyAmount, maxDebitAtomic: maxSell}` only, no settlement claims |
+| `GET /v1/invoices/{id}/authoritative` | Unchanged, but the session check is the P10.5 one below |
+
+Every outgoing body is validated with `parseResponse` or `parseSessionOrListResponse` before sending.
+
+### Session validation (every viewer route)
+
+One conditional `UPDATE viewer_sessions SET idle_expires_at_ms = MIN(now + 30 min, expires_at_ms) WHERE token_sha256 = ? AND
+revoked_at_ms IS NULL AND expires_at_ms > now AND authenticated_at_ms <= now AND idle > now RETURNING …` (src/d1-auth.ts),
+wrapped as a `ViewerAuthenticator` and passed through `authenticateViewer` (src/viewer-access.ts brands the viewer). So the
+sliding refresh is atomic and never extends beyond the absolute expiry. It writes only the auth table. Rows from P10.4
+(NULL `idle_expires_at_ms`) are read as idle until `min(authenticated_at_ms + 30 min, expires_at_ms)`.
+
+Schema (`src/d1-schema.ts`, idempotent): `viewer_invitations(code_sha256 PK, tenant_id, viewer_id, created_at_ms,
+expires_at_ms, used_at_ms, session_sha256)`; `viewer_sessions` gains `idle_expires_at_ms, revoked_at_ms, created_from
+(invitation hash or 'seed'/NULL for legacy rows), rotated_from` through `ALTER TABLE ADD COLUMN` (a duplicate column is ignored).
+Triggers: an invitation is consumed at most once and its identity is immutable; a revocation is final; session identity is
+immutable; idle expiry can never exceed absolute expiry.
+
+### Global replay store (decision 3)
+
+`service_nonces(key_id, nonce, seen_at_ms, PK(key_id, nonce))`. After `verifyRequest` passes (it still claims the
+per-isolate `NonceWindow` first, as a fast path), the handler INSERTs the nonce. A primary-key conflict → 401
+`unauthenticated-service`; **any other D1 error → 503 `unavailable`** (fail closed). Unauthenticated requests never write.
+With probability 1 % a request prunes `seen_at_ms < now − (2 × 60 s + 60 s)`: a replay must carry a timestamp within ±60 s
+of the verifier's clock, so its first use was at most 120 s earlier; the extra minute absorbs isolate clock drift.
+Tested across two separate Miniflare instances sharing one persisted D1 directory (sequential and racing). When two local
+workerd processes race on the same SQLite file, a loser can get `SQLITE_BUSY` → 503 (still never a second 200); hosted D1
+has a single primary.
+
+### Rate limiting
+
+Invitation exchange uses the normal per-key bucket and a stricter one (10, refill 0.2/s; per isolate). Per-invitation
+attempt accounting is deliberately not implemented: codes are 256-bit random, so guessing is infeasible, and every
+failure answers the same 403.
+
+### Operator CLI (local persisted D1 only)
+
+```
+npm run seed                                     # also writes 3 single-use invitations per viewer to .wrangler/demo-identities.json
+npm run invite -- <tenantId> <viewerId> [ttlMin]  # default 15 min; prints the code ONCE to stdout, stores only its SHA-256
+npm run revoke-sessions -- <tenantId> <viewerId>  # revokes every live session of that viewer
+```
+
+Codes and tokens are never logged by the Worker (logs carry rid, route, status and key id only).
+
+### Optional chain hook
+
+`chainFromEnv(env)` (`src/chain-config.ts`) returns `{ rpc: createCeloRpc({url}), attributionCode }` only when
+`DAIDAI_CHAIN_RPC_URL` is a valid https (or `http://127.0.0.1`) URL and `DAIDAI_ATTRIBUTION_CODE` is set; otherwise
+`undefined` and no chain reader exists (operations stay unknown). Its result goes to `projectionSources({ chain })`.
+
 ## Limitations: NOT production-ready
 
-- Nonce replay window and rate limiter are **per isolate**: a replay or burst can succeed on another isolate within the
-  ±60 s window. Production needs a global store (Durable Object or D1 nonce table) and a platform rate limit.
-- Sessions must be inserted server-side; there is no login flow, rotation or revocation API.
-- No chain reader; nothing can settle. Adding one requires the P10.3 `readOnlyRpc` and a reviewed RPC configuration.
-- The D1 lineage writer is a test prototype. There is no write route, no execution service, no wallet and no dispatch.
+- Replay protection is global (D1), but the rate limiters are still **per isolate**; production needs a platform rate limit.
+- Invitations are an interim identity mechanism (no IdP). There is no in-place token rotation route: a new session comes
+  only from a new invitation. Successful login atomically revokes the prior browser session and records its hash in `rotated_from`. An invalid invitation leaves the prior session intact.
+- The Worker never applies the schema; a database without the P10.5 tables answers 503 to every authenticated request.
+- No chain reader by default; the optional hook is untested against live RPC by design.
+- The D1 lineage writer is a test prototype. The only write routes touch authentication tables; no execution service, no wallet and no dispatch.
 - No remote D1 is provisioned; the database id is a placeholder.
 - The read binding can write (see A8); a compromised Worker could modify data. Not acceptable for production.

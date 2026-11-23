@@ -34,6 +34,8 @@ export type NewAttempt = Readonly<{
   attemptId: string; tenantId: string; invoiceId: string; digest: string; recordedRevision: number;
   operation: AttemptOperation; createdAtMs: number; authorization: AuthorizationFingerprint; envelope: AttemptEnvelope;
 }>;
+/** P10.5: the taker-wallet nonce an attempt will use, reserved atomically with the attempt. */
+export type NonceReservation = Readonly<{ chainId: number; sender: string; nonce: number }>;
 export type DispatchState = 'claimed' | 'hash-recorded' | 'outcome-unknown';
 export type CloseReason = 'verified-final' | 'reconciled-not-landed';
 export type LineageEventKind = 'claimed' | 'hash-recorded' | 'outcome-unknown' | 'verification' | 'reconciliation' | 'legacy-import' | 'closed';
@@ -95,8 +97,10 @@ export class AttemptLineageStore {
   }
 
   /** Records a claimed attempt before any dispatch. A repeated identical claim is idempotent; a conflicting one is refused. */
-  recordAttempt(a: NewAttempt): 'created' | 'existing' {
+  recordAttempt(a: NewAttempt, reservation?: NonceReservation): 'created' | 'existing' {
     validateNew(a);
+    if (reservation) check(Number.isSafeInteger(reservation.chainId) && addressPattern.test(reservation.sender) &&
+      Number.isSafeInteger(reservation.nonce) && reservation.nonce >= 0, 'invalid nonce reservation');
     return this.tx(() => {
       const existing = this.row(a.attemptId);
       if (existing) {
@@ -104,6 +108,11 @@ export class AttemptLineageStore {
           existing.recorded_revision === a.recordedRevision && existing.operation === a.operation && existing.lineage === 'recorded' &&
           existing.authorization === JSON.stringify(a.authorization) && existing.envelope === JSON.stringify(a.envelope);
         check(same, 'attempt id conflict');
+        if (reservation) {
+          const held = this.db.prepare('SELECT chain_id, sender, nonce FROM taker_nonces WHERE attempt_id = ?').get(a.attemptId) as
+            { chain_id: number; sender: string; nonce: number } | undefined;
+          check(held && held.chain_id === reservation.chainId && held.sender === reservation.sender && held.nonce === reservation.nonce, 'attempt id conflict');
+        }
         return 'existing';
       }
       // Per invoice operation, across commitments: a new digest never reopens a finalized or open operation.
@@ -119,7 +128,17 @@ export class AttemptLineageStore {
         if (/UNIQUE constraint failed: attempts\.tenant_id/.test(String((error as Error).message))) throw Error('an attempt for this operation is already open');
         throw error;
       }
-      this.event(a.attemptId, 'claimed', a.createdAtMs, { recordedRevision: a.recordedRevision });
+      if (reservation) {
+        // Same transaction as the attempt: either both persist or neither does.
+        try {
+          this.db.prepare('INSERT INTO taker_nonces (chain_id, sender, nonce, attempt_id, reserved_at_ms) VALUES (?, ?, ?, ?, ?)')
+            .run(reservation.chainId, reservation.sender, reservation.nonce, a.attemptId, a.createdAtMs);
+        } catch (error) {
+          if (/taker nonce already reserved|UNIQUE constraint failed: taker_nonces/.test(String((error as Error).message))) throw Error('taker nonce already reserved');
+          throw error;
+        }
+      }
+      this.event(a.attemptId, 'claimed', a.createdAtMs, { recordedRevision: a.recordedRevision, ...(reservation ? { nonce: reservation.nonce } : {}) });
       return 'created';
     });
   }

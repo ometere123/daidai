@@ -16,7 +16,7 @@ import { cngn, commit, usdt, type Invoice } from '../src/invoice-core.ts';
 import { authenticateViewerToken, projectionSources, type Repositories } from '../src/repositories.ts';
 import { NonceWindow, sha256Hex, verifyRequest } from '../src/service-auth.ts';
 import { getAuthoritativeInvoice } from '../apps/web/lib/daidai-api.ts';
-import { internalDemoEnabled } from '../apps/web/lib/internal-demo.ts';
+import { appEnabled } from '../apps/web/lib/app-gate.ts';
 
 // ───────────────────────────── 5. Lineage policy (node store) ─────────────────────────────
 const D1 = 'ab'.repeat(32), D2 = 'cd'.repeat(32);
@@ -258,18 +258,24 @@ test('ADV-6 response id mismatch → unavailable; matching projection → invoic
   assert.deepEqual(await getAuthoritativeInvoice('inv-a1', TOKEN), { kind: 'unavailable' });
 });
 
-test('ADV-6 internal demo gate truth table', () => {
-  const on = (e: Record<string, string>) => internalDemoEnabled(e as NodeJS.ProcessEnv);
-  assert.equal(on({ DAIDAI_INTERNAL_DEMO: '1' }), true);
-  assert.equal(on({ DAIDAI_INTERNAL_DEMO: '1', NODE_ENV: 'development', VERCEL_ENV: 'preview' }), true);
-  for (const v of ['1 ', ' 1', 'true', 'yes', 'on', 'TRUE', '01', '', '0']) assert.equal(on({ DAIDAI_INTERNAL_DEMO: v }), false, JSON.stringify(v));
-  // VERCEL_ENV=production always wins, even with the allow flag.
-  assert.equal(on({ DAIDAI_INTERNAL_DEMO: '1', VERCEL_ENV: 'production' }), false);
-  assert.equal(on({ DAIDAI_INTERNAL_DEMO: '1', VERCEL_ENV: 'production', DAIDAI_INTERNAL_DEMO_ALLOW_PROD_BUILD: '1', NODE_ENV: 'development' }), false);
-  // NODE_ENV=production is off unless the allow flag is exactly '1'.
-  assert.equal(on({ DAIDAI_INTERNAL_DEMO: '1', NODE_ENV: 'production' }), false);
-  for (const v of ['true', '1 ', 'yes', '']) assert.equal(on({ DAIDAI_INTERNAL_DEMO: '1', NODE_ENV: 'production', DAIDAI_INTERNAL_DEMO_ALLOW_PROD_BUILD: v }), false, v);
-  assert.equal(on({ DAIDAI_INTERNAL_DEMO: '1', NODE_ENV: 'production', DAIDAI_INTERNAL_DEMO_ALLOW_PROD_BUILD: '1' }), true);
-  // (Lead) Hardened after this observation: VERCEL_ENV is compared case- and whitespace-insensitively.
-  for (const v of ['Production', ' production', 'PRODUCTION']) assert.equal(on({ DAIDAI_INTERNAL_DEMO: '1', VERCEL_ENV: v }), false, v);
+test('ADV-6 (updated for P10.5) environment gate truth table; the P10.4 demo flags no longer enable anything', () => {
+  const on = (e: Record<string, string>) => appEnabled(e as NodeJS.ProcessEnv);
+  // Local: explicit flag or a development server only.
+  assert.equal(on({ DAIDAI_APP_ENABLED: '1' }), true);
+  assert.equal(on({ NODE_ENV: 'development' }), true);
+  for (const v of ['1 ', ' 1', 'true', 'yes', 'on', 'TRUE', '01', '', '0']) assert.equal(on({ DAIDAI_APP_ENABLED: v, NODE_ENV: 'production' }), false, JSON.stringify(v));
+  // Production: only DAIDAI_APP_ENABLED=1, never NODE_ENV=development or the preview flag.
+  for (const v of ['production', 'Production', ' production', 'PRODUCTION']) {
+    assert.equal(on({ VERCEL_ENV: v }), false, v);
+    assert.equal(on({ VERCEL_ENV: v, NODE_ENV: 'development', DAIDAI_PREVIEW_ACCESS: '1' }), false, v);
+    assert.equal(on({ VERCEL_ENV: v, DAIDAI_APP_ENABLED: '1' }), true, v);
+  }
+  // Preview: only DAIDAI_PREVIEW_ACCESS=1 (and a session is still required at the page).
+  for (const v of ['preview', 'Preview']) {
+    assert.equal(on({ VERCEL_ENV: v, DAIDAI_APP_ENABLED: '1', NODE_ENV: 'development' }), false, v);
+    assert.equal(on({ VERCEL_ENV: v, DAIDAI_PREVIEW_ACCESS: 'true' }), false, v);
+    assert.equal(on({ VERCEL_ENV: v, DAIDAI_PREVIEW_ACCESS: '1' }), true, v);
+  }
+  // The removed P10.4 flags have no effect.
+  assert.equal(on({ DAIDAI_INTERNAL_DEMO: '1', DAIDAI_INTERNAL_DEMO_ALLOW_PROD_BUILD: '1', NODE_ENV: 'production' }), false);
 });

@@ -7,7 +7,9 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "npm run build && node --disable-warning=ExperimentalWarning --experimental-strip-types --test --test-concurrency=1 test/*.test.ts",
     "seed": "npm run build && node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/seed-local.mjs",
-    "dev": "npm run build && node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/dev-server.mjs"
+    "dev": "npm run build && node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/dev-server.mjs",
+    "invite": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/invite.mjs",
+    "revoke-sessions": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/revoke-sessions.mjs"
   },
   "devDependencies": {
     "@celo/attribution-tags": "0.5.0",
