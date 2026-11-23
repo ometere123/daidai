@@ -252,14 +252,15 @@ test('two open attempts for one operation fail closed as multiple-attempts', asy
   assert.equal(result.settlement, 'reconciliation-required');
 });
 
-test('a reconciled-not-landed attempt is history; the single remaining attempt carries the evidence', async () => {
+test('a reconciled-not-landed claim is not trusted: the earlier attempt still counts and settlement fails closed', async () => {
   const { ports } = harness();
   const result = await read({ ...ports, readAttempts: async (_: unknown, operation: Op) => operation === 'payout'
     ? [attempt('payout', { id: 'payout-old', hash: null, closed: 'reconciled-not-landed', dispatch: 'outcome-unknown' }), attempt('payout')]
     : [attempt('conversion')] });
   assert(result);
-  assert.equal(result.payout.attemptId, 'payout-a');
-  assert.equal(result.settlement, 'settled');
+  assert.equal(result.payout.state, 'reconciliation-required');
+  assert.equal(result.payout.reason, 'multiple-attempts');
+  assert.equal(result.settlement, 'reconciliation-required');
 });
 
 test('cross-tenant or cross-commitment attempts are a mismatch', async () => {

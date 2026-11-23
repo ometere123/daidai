@@ -52,18 +52,16 @@ test('duplicate claims are idempotent; a conflicting claim under the same id is 
   assert.throws(() => store.recordAttempt(claim({ envelope: payoutEnvelope })), /attempt id conflict/);
 });
 
-test('only one open attempt per operation; a second needs explicit reconciliation of the first', t => {
+test('only one open attempt per operation, and reconciled-not-landed closure is disabled', t => {
   const { file, store, cleanup } = fresh(); t.after(cleanup);
   store.recordAttempt(claim());
   assert.throws(() => store.recordAttempt(claim({ attemptId: 'conv-2', recordedRevision: 5 })), /already open/);
   // A payout for the same invoice is a different operation and may be open at the same time.
   store.recordAttempt(claim({ attemptId: 'pay-1', operation: 'payout', recordedRevision: 6, envelope: payoutEnvelope }));
-  assert.throws(() => store.close('conv-1', 'reconciled-not-landed', 1_000_500, ''), /accountable operator/);
-  store.close('conv-1', 'reconciled-not-landed', 1_000_500, 'ops-reviewer');
-  assert.equal(store.recordAttempt(claim({ attemptId: 'conv-2', recordedRevision: 5 })), 'created');
+  assert.throws(() => store.close('conv-1', 'reconciled-not-landed', 1_000_500, 'ops-reviewer'), /disabled until authoritative reconciliation/);
+  assert.throws(() => store.recordAttempt(claim({ attemptId: 'conv-2', recordedRevision: 5 })), /already open/);
   const reader = new AttemptLineageReader(file); t.after(() => reader.close());
-  const attempts = reader.attempts(base, 'conversion');
-  assert.deepEqual(attempts.map(a => [a.id, a.recordedRevision, a.closed]), [['conv-1', 3, 'reconciled-not-landed'], ['conv-2', 5, null]]);
+  assert.deepEqual(reader.attempts(base, 'conversion').map(a => [a.id, a.closed]), [['conv-1', null]]);
 });
 
 test('concurrent claims from two connections: exactly one wins', t => {
@@ -99,18 +97,20 @@ test('hashes are set once; a different hash or a reused hash is refused by SQLit
   store.recordHash('conv-1', hashA, 1_000_100);
   store.recordHash('conv-1', hashA, 1_000_200); // idempotent
   assert.throws(() => store.recordHash('conv-1', hashB, 1_000_300), /immutable/);
-  assert.throws(() => store.recordHash('pay-1', hashA, 1_000_300), /UNIQUE/);
+  assert.throws(() => store.recordHash('pay-1', hashA, 1_000_300), /already belongs to another attempt/);
   assert.throws(() => store.recordHash('conv-1', 'not-a-hash', 1_000_300), /invalid transaction hash/);
 });
 
 test('identity, closure and history are immutable at the database level', t => {
   const { file, store, cleanup } = fresh(); t.after(cleanup);
   store.recordAttempt(claim());
+  store.recordHash('conv-1', hashA, 1_000_050);
+  store.appendVerification('conv-1', 1_000_060, 'verified-final', 'transaction-verifier');
   store.close('conv-1', 'verified-final', 1_000_100, 'ops-reviewer');
   const raw = new DatabaseSync(file); t.after(() => raw.close());
   assert.throws(() => raw.exec("UPDATE attempts SET recorded_revision = 99 WHERE attempt_id = 'conv-1'"), /immutable/);
   assert.throws(() => raw.exec("UPDATE attempts SET lineage = 'unresolved' WHERE attempt_id = 'conv-1'"), /immutable/);
-  assert.throws(() => raw.exec("UPDATE attempts SET closed = 'reconciled-not-landed' WHERE attempt_id = 'conv-1'"), /final/);
+  assert.throws(() => raw.exec("UPDATE attempts SET closed = NULL WHERE attempt_id = 'conv-1'"), /attempt closure is final/);
   assert.throws(() => raw.exec("DELETE FROM attempts"), /retained/);
   assert.throws(() => raw.exec("UPDATE attempt_events SET kind = 'claimed'"), /append-only/);
   assert.throws(() => raw.exec("DELETE FROM attempt_events"), /append-only/);

@@ -8,7 +8,12 @@
  * SQLite enforces the rules, not just this class:
  *  - identity columns are immutable (BEFORE UPDATE trigger), rows can't be deleted;
  *  - a transaction hash can be recorded once (NULL → value), never changed;
- *  - at most one *open* attempt per (tenant, invoice, digest, operation) (partial unique index);
+ *  - per (tenant, invoice, digest, operation): at most one open attempt, and an attempt closed 'verified-final' is
+ *    terminal, so no further attempt can ever be inserted (no-duplicate-payment invariant), even with a fresh id;
+ *  - closing as 'reconciled-not-landed' (the only path that could allow a new attempt) is DISABLED until an
+ *    authoritative, server-attested reconciliation exists (P10.3 review, blocker 2). Unknown and hashless attempts
+ *    therefore keep blocking new attempts;
+ *  - INSERT/UPDATE OR REPLACE cannot delete rows through any unique conflict (id, operation key or hash);
  *  - the event history is append-only.
  *
  * Records whose historical revision can't be proven (legacy harness rows) are imported with lineage 'unresolved'
@@ -80,6 +85,26 @@ CREATE TRIGGER IF NOT EXISTS events_no_replace BEFORE INSERT ON attempt_events
 CREATE TRIGGER IF NOT EXISTS closed_attempt_frozen BEFORE UPDATE OF hash, dispatch ON attempts
   WHEN OLD.closed IS NOT NULL
   BEGIN SELECT RAISE(ABORT, 'closed attempts are frozen'); END;
+-- No-duplicate-payment invariant: an open or verified-final attempt blocks every further attempt for the operation.
+CREATE TRIGGER IF NOT EXISTS operation_open_or_final BEFORE INSERT ON attempts
+  WHEN EXISTS (SELECT 1 FROM attempts WHERE tenant_id = NEW.tenant_id AND invoice_id = NEW.invoice_id AND digest = NEW.digest
+    AND operation = NEW.operation AND (closed IS NULL OR closed = 'verified-final'))
+  BEGIN SELECT RAISE(ABORT, 'an attempt for this operation is open or finalized'); END;
+CREATE TRIGGER IF NOT EXISTS attempt_inserted_open BEFORE INSERT ON attempts WHEN NEW.closed IS NOT NULL
+  BEGIN SELECT RAISE(ABORT, 'attempts are recorded open'); END;
+CREATE TRIGGER IF NOT EXISTS hash_no_replace_insert BEFORE INSERT ON attempts
+  WHEN NEW.hash IS NOT NULL AND EXISTS (SELECT 1 FROM attempts WHERE hash = NEW.hash)
+  BEGIN SELECT RAISE(ABORT, 'transaction hash already belongs to another attempt'); END;
+CREATE TRIGGER IF NOT EXISTS hash_no_replace_update BEFORE UPDATE OF hash ON attempts
+  WHEN NEW.hash IS NOT NULL AND EXISTS (SELECT 1 FROM attempts WHERE hash = NEW.hash AND attempt_id <> OLD.attempt_id)
+  BEGIN SELECT RAISE(ABORT, 'transaction hash already belongs to another attempt'); END;
+-- Deferred until authoritative reconciliation infrastructure exists. Fail closed: never prove non-execution by assertion.
+CREATE TRIGGER IF NOT EXISTS reconciled_not_landed_disabled BEFORE UPDATE OF closed ON attempts
+  WHEN NEW.closed = 'reconciled-not-landed'
+  BEGIN SELECT RAISE(ABORT, 'reconciled-not-landed closure is disabled until authoritative reconciliation exists'); END;
+CREATE TRIGGER IF NOT EXISTS verified_final_requires_hash BEFORE UPDATE OF closed ON attempts
+  WHEN NEW.closed = 'verified-final' AND OLD.hash IS NULL
+  BEGIN SELECT RAISE(ABORT, 'verified-final requires a recorded transaction hash'); END;
 CREATE TRIGGER IF NOT EXISTS attempt_identity_immutable BEFORE UPDATE OF
   attempt_id, tenant_id, invoice_id, digest, recorded_revision, lineage, operation, created_at_ms, authorization, envelope ON attempts
   BEGIN SELECT RAISE(ABORT, 'attempt identity is immutable'); END;
@@ -142,6 +167,9 @@ export class AttemptLineageStore {
         check(same, 'attempt id conflict');
         return 'existing';
       }
+      const blocking = this.db.prepare(`SELECT closed FROM attempts WHERE tenant_id = ? AND invoice_id = ? AND digest = ? AND operation = ?
+        AND (closed IS NULL OR closed = 'verified-final') LIMIT 1`).get(a.tenantId, a.invoiceId, a.digest, a.operation) as { closed: string | null } | undefined;
+      if (blocking) throw Error(blocking.closed === 'verified-final' ? 'this operation is already finalized' : 'an attempt for this operation is already open');
       try {
         this.db.prepare(`INSERT INTO attempts (attempt_id, tenant_id, invoice_id, digest, recorded_revision, lineage, operation,
           created_at_ms, authorization, envelope, hash, dispatch, closed) VALUES (?, ?, ?, ?, ?, 'recorded', ?, ?, ?, ?, NULL, 'claimed', NULL)`)
@@ -184,16 +212,25 @@ export class AttemptLineageStore {
   }
 
   /**
-   * Closes an attempt after explicit reconciliation. Closing as 'reconciled-not-landed' is what makes a new attempt
-   * for the same operation possible; it requires a prior human reconciliation record. Nothing here retries.
+   * Closes an attempt as 'verified-final': terminal for its operation, so it can only ever block further attempts.
+   * Requires a recorded hash and a prior independent 'verified-final' verification in the attempt's own history.
+   *
+   * 'reconciled-not-landed' is refused (here and by SQLite). It is the only closure that could permit a new attempt,
+   * and an operator name is not proof of non-execution. It stays disabled until a server-authorized reconciliation
+   * attestation bound to the exact attempt and evidence exists and has been separately reviewed.
    */
-  close(attemptId: string, reason: CloseReason, atMs: number, reconciledBy: string) {
-    check(idPattern.test(reconciledBy), 'reconciliation requires an accountable operator');
+  close(attemptId: string, reason: CloseReason, atMs: number, closedBy: string) {
+    if (reason !== 'verified-final') throw Error('reconciled-not-landed closure is disabled until authoritative reconciliation exists');
+    check(idPattern.test(closedBy), 'closure requires an accountable operator');
     this.tx(() => {
-      check(this.row(attemptId), 'unknown attempt');
-      this.event(attemptId, 'reconciliation', atMs, { reason, reconciledBy });
+      const r = this.row(attemptId);
+      check(r, 'unknown attempt');
+      check(r.hash !== null, 'verified-final requires a recorded transaction hash');
+      const verified = this.db.prepare(`SELECT 1 FROM attempt_events WHERE attempt_id = ? AND kind = 'verification'
+        AND json_extract(detail, '$.result') = 'verified-final' LIMIT 1`).get(attemptId);
+      check(verified, 'verified-final requires an independent verified-final verification');
+      this.event(attemptId, 'closed', atMs, { reason, closedBy });
       this.db.prepare('UPDATE attempts SET closed = ? WHERE attempt_id = ?').run(reason, attemptId);
-      this.event(attemptId, 'closed', atMs, { reason });
     });
   }
 

@@ -112,7 +112,9 @@ export function selectAttempt(binding: InvoiceBinding, operation: InvoiceOperati
       return { projection: { state: 'reconciliation-required', reason: 'mismatch' } };
     }
   }
-  const active = (attempts as StoredAttempt[]).filter(a => a.closed !== 'reconciled-not-landed');
+  // No closure is trusted to remove an attempt from consideration: 'reconciled-not-landed' is disabled until
+  // authoritative reconciliation exists, so such a row (e.g. written by hand) still counts and fails closed.
+  const active = attempts as StoredAttempt[];
   if (active.length === 0) return { projection: { state: 'unverified', reason: 'missing' } };
   const unresolved = active.find(a => a.lineage !== 'recorded' || a.recordedRevision === null || !a.authorization || !a.envelope);
   if (unresolved) return { projection: { state: 'reconciliation-required', reason: 'lineage-unresolved', attemptId: unresolved.id } };

@@ -280,8 +280,9 @@ test('lineage: SQL cannot mutate identity, rewrite hash, reopen, or delete', () 
     "UPDATE attempts SET lineage = 'unresolved'", "UPDATE attempts SET authorization = '{}'", 'UPDATE attempts SET hash = NULL',
     `UPDATE attempts SET hash = '${hashes.conversion}'`, 'DELETE FROM attempts', 'DELETE FROM attempt_events', "UPDATE attempt_events SET kind = 'closed'",
   ]) assert.throws(() => s.db.exec(sql), sql);
+  s.appendVerification('att-1', 1_002, 'verified-final', 'transaction-verifier');
   s.close('att-1', 'verified-final', 1_003, 'op-1');
-  assert.throws(() => s.db.exec('UPDATE attempts SET closed = NULL'));
+  assert.throws(() => s.db.exec('UPDATE attempts SET closed = NULL'), /attempt closure is final/);
   assert.throws(() => s.close('att-1', 'reconciled-not-landed', 1_004, 'op-1'));
   const r = new AttemptLineageReader(file);
   const [a] = r.attempts(commitment, 'payout');
