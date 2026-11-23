@@ -86,3 +86,10 @@ Forno independently returned chain 42220, a finalized head and a matching regist
 ### Browser regression
 
 `7d6a0e0` enabled the optional live indicative preview locally. A fresh Chromium run caught a 403 on native same-origin form submission after the page-level no-referrer change. Product GET responses now keep the origin for same-origin forms and omit cross-origin referrers. The strict POST Origin check still holds, and the share secret stays in the fragment. The full-stack test asserts the create redirect status and validates the path before navigating.
+
+
+### Final review evidence
+
+`37bf4ec` restored native form submission without weakening CSRF checks. The fresh local production build, reseeded D1, repeatable schema version 1 migration and Chromium workflow passed 29/29 checks. Worker product storage and authorization passed 7/7 on the patched dependency graph. Focused preview and observation passed 10/10.
+
+The updated Miniflare transport drops an empty Origin header. Nonempty and null Origin rejection remain full-Worker tests, and the same Worker handler now separately verifies that an explicitly present empty Origin still fails before authentication or D1. The final CI link on PR #8 records the exact-head result of the complete suite. Live Celo receipt qualification, production identity, remote database, and owner-approved live settlement remain open. No financial execution was enabled.
