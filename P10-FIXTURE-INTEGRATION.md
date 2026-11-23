@@ -13,3 +13,9 @@ Before live integration, require trusted server-owned balances and allowances, f
 Root strict TypeScript passed, followed by 54/54 regression tests and 33/33 isolated browser tests. Frontend strict TypeScript and production build passed. The frontend preview was built with NEXT_PUBLIC_DAIDAI_DEMO_TOOLS=1 and tested on loopback with 14/14 passing checks. The four additional P10 model cases passed using Node's test runner and native TypeScript stripping.
 
 The architecture audit found no earlier P10 definition and reviewed the server/client read model. The security audit reviewed trusted inputs, dispatch and reconciliation gates. A separate test agent added the presentation failure cases. This branch adds no financial execution code.
+
+## Repeatable frontend verification
+
+From apps/web, run npm run test:model directly. Build with NEXT_PUBLIC_DAIDAI_DEMO_TOOLS=1, then run npm run start -- --hostname 127.0.0.1 --port 3219. In a second shell, run npm run test:browser. Set DAIDAI_PREVIEW_URL if using a different local port.
+
+The proposed next boundary is described in [the authoritative projection plan](P10-AUTHORITATIVE-PROJECTION-PLAN.md).

@@ -6,6 +6,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test:model": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/p10-model.test.mjs",
     "test:browser": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/plumb-browser.test.mjs"
   },
   "dependencies": {
