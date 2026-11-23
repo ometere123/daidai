@@ -55,7 +55,7 @@ describe('C2 no invoice read before authorization', () => {
       assert.equal(r.status, 404);
       assert.equal(await r.text(), '{"apiVersion":"v1","kind":"error","error":"not-found-or-forbidden"}');
       assert.deepEqual(touchesData(h.sql), []);
-      assert.ok(h.sql.length >= 1 && h.sql.every(q => /FROM (viewer_sessions|tenant_directory|invoice_permissions)\b|^INSERT INTO service_nonces |^UPDATE viewer_sessions SET idle_expires_at_ms /.test(q)), h.sql.join('\n'));
+      assert.ok(h.sql.length >= 1 && h.sql.every(q => /FROM (viewer_sessions|tenant_directory|invoice_permissions)\b|^INSERT INTO service_nonces |^DELETE FROM service_nonces WHERE seen_at_ms < |^UPDATE viewer_sessions SET idle_expires_at_ms /.test(q)), h.sql.join('\n'));
     });
   }
   test('an authorized viewer does reach the invoice, signatures and attempts (the instrument works)', async () => {
@@ -64,7 +64,7 @@ describe('C2 no invoice read before authorization', () => {
     assert.equal(r.status, 200);
     assert.ok(touchesData(h.sql).length >= 3);
     // P10.5: besides SELECTs, only the nonce claim and the session idle slide (auth tables) are written.
-    assert.ok(h.sql.every(q => /^\s*SELECT|^INSERT INTO service_nonces |^UPDATE viewer_sessions SET idle_expires_at_ms /i.test(q)), 'read path writes only auth state');
+    assert.ok(h.sql.every(q => /^\s*SELECT|^INSERT INTO service_nonces |^DELETE FROM service_nonces WHERE seen_at_ms < |^UPDATE viewer_sessions SET idle_expires_at_ms /i.test(q)), 'read path writes only auth state');
   });
 });
 

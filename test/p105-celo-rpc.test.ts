@@ -25,7 +25,7 @@ const log = (token: string, from: string, to: string, value: bigint, tx: Hex, bl
   address: token, removed: false, transactionHash: tx, blockHash: block, logIndex: '0x' + i.toString(16),
   topics: encodeEventTopics({ abi: erc20Abi, eventName: 'Transfer', args: { from: from as Hex, to: to as Hex } }), data: encodeAbiParameters([{ type: 'uint256' }], [value]),
 });
-type ChainState = { chainId: string; finalized: bigint; blocks: Map<string, { hash: Hex; ts: number }>; txs: Map<string, { to: string; input: Hex; block: bigint; logs: unknown[]; status?: string }>;
+type ChainState = { chainId: string; finalized: bigint; blocks: Map<string, { hash: Hex; ts: number }>; txs: Map<string, { to: string; input: Hex; block: bigint; logs: unknown[]; status?: string; returnedHash?: Hex }>;
   delayMs?: number; oversized?: boolean; rpcError?: boolean; badId?: boolean; onBlockRead?: (n: bigint, count: number) => void; blockReads: Map<string, number>; calls: string[] };
 
 function baseState(o: { payoutAmount?: bigint; debit?: bigint; payoutToken?: string; payoutTo?: string; finalized?: bigint } = {}): ChainState {
@@ -54,7 +54,7 @@ async function serve(state: ChainState): Promise<{ url: string; server: Server }
       if (t) {
         const bh = blockOf(t.block)!.hash, bn = '0x' + t.block.toString(16);
         result = method === 'eth_getTransactionByHash'
-          ? { hash: params[0], blockHash: bh, blockNumber: bn, chainId: '0xa4ec', from: taker, to: t.to, input: t.input, value: '0x0' }
+          ? { hash: t.returnedHash ?? params[0], blockHash: bh, blockNumber: bn, chainId: '0xa4ec', from: taker, to: t.to, input: t.input, value: '0x0' }
           : { transactionHash: params[0], blockHash: bh, blockNumber: bn, from: taker, to: t.to, status: t.status ?? '0x1', logs: t.logs };
       }
     } else if (method === 'eth_getBlockByNumber') {
@@ -121,6 +121,7 @@ test('C2: canonical, finalized, exact-output and max-debit evidence verifies thr
 
 const negative: Record<string, [() => ChainState, 'conversion' | 'payout', string, string?]> = {
   notFinal: [() => baseState({ finalized: 102n }), 'payout', 'reconciliation-required', 'not-final'],
+  wrongTransaction: [() => { const s = baseState(); s.txs.get(payHash)!.returnedHash = convHash; return s; }, 'payout', 'unknown'],
   wrongToken: [() => baseState({ payoutToken: usdt }), 'payout', 'unknown'],
   wrongRecipient: [() => baseState({ payoutTo: approver }), 'payout', 'unknown'],
   shortOutput: [() => baseState({ payoutAmount: BigInt(invoice.buyAmount) - 1n }), 'payout', 'unknown'],

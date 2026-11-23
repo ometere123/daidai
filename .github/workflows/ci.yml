@@ -215,6 +215,15 @@ jobs:
           npm run typecheck
           npm test
 
+      - name: Real local D1, Worker, Next.js and Chromium authentication
+        run: |
+          npx --yes "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium
+          export DAIDAI_CHROMIUM_PATH="$(node -e "console.log(require('playwright-core').chromium.executablePath())")"
+          npm --prefix apps/web ci
+          npm --prefix apps/web run build
+          npm --prefix workers/api run seed
+          node workers/api/scripts/e2e-auth-flow.mjs
+
   secret-scan:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
