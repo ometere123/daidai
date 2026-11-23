@@ -1,3 +1,5 @@
+import { productCall } from '../../../lib/daidai-api';
+import { amount } from '../product-ui';
 import { localProduct } from '../../../lib/product';
 import type { Metadata } from 'next';
 import { TokenAmount } from '../../ui';
@@ -8,7 +10,8 @@ export const revalidate = 0;
 export const metadata: Metadata = { title: 'Invoices · Daidai', robots: { index: false, follow: false, nocache: true } };
 
 export default async function InvoicesPage() {
-  const { invoices } = await requirePrivate();
+  const { invoices, token } = await requirePrivate();
+  const drafts = localProduct() ? await productCall({ kind: 'list' }, token) : null;
   return <>
     <div className="panel" role="region" aria-label="Authoritative notice">
       <strong>Authoritative · read-only</strong>
@@ -16,6 +19,10 @@ export default async function InvoicesPage() {
     </div>
     <h1 className="title">Invoices</h1>
     {localProduct() && <nav aria-label="Customer workspace"><a href="/merchant">Merchant workspace</a>{' · '}<a href="/pay">Payer review</a></nav>}
+    {drafts?.kind === 'list' && drafts.merchant && <section className="panel"><h2>Merchant invoices</h2><a className="btn secondary" href="/invoices/new">New invoice</a>
+      {drafts.revisions.length === 0 ? <p>No merchant invoices yet.</p> : <ul>{drafts.revisions.map(i => <li key={i.id}>
+        <a href={'/invoices/' + i.id}>{amount(i.target)} cNGN · {i.state} · revision {i.revision}</a><p className="mono" style={{overflowWrap:'anywhere'}}>{i.recipient}</p>
+      </li>)}</ul>}</section>}
     {invoices === null ? <div className="panel" role="status">Invoices are not available right now.</div>
       : invoices.length === 0 ? <div className="panel" role="status" data-result="empty">No invoices are shared with you yet.</div>
       : <ul className="panel" aria-label="Invoices" style={{ listStyle: 'none', margin: 0 }}>

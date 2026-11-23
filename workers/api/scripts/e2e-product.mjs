@@ -27,8 +27,9 @@ export async function exerciseProduct({ browser, base, invitations, check, servi
   };
   try {
     await login(m, invitations['demo-viewer'][2]);
-    await m.goto(base + '/merchant');
-    check('P11 merchant arrives at an empty isolated workspace', /No invoices yet/.test(await body(m)));
+    await m.goto(base + '/invoices');
+    check('P11 merchant arrives at an empty isolated workspace', /No merchant invoices yet/.test(await body(m)));
+    await m.getByRole('link', { name: 'New invoice', exact: true }).click();
     await m.getByLabel('Exact recipient amount (cNGN)').fill('1500');
     await m.getByLabel('Maximum all-in debit (USDt)').fill('1.20');
     await m.getByLabel('Recipient wallet').fill('0x' + '12'.repeat(20));
@@ -36,7 +37,7 @@ export async function exerciseProduct({ browser, base, invitations, check, servi
     const created = await submit(m, 'Create draft');
     assert.equal(created.status(), 303, 'create draft must redirect');
     const location = await created.headerValue('location');
-    assert(location && /^\/merchant\/[a-f0-9]{32}$/.test(location), 'create draft must return the invoice detail location');
+    assert(location && /^\/invoices\/[a-f0-9]{32}$/.test(location), 'create draft must return the invoice detail location');
     const invoice = new URL(location, base);
     await m.waitForURL(invoice.href);
     check('P11 persistent draft created with exact cNGN target', await m.getByText('1500 cNGN', { exact: true }).isVisible());

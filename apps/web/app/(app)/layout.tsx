@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { Wordmark } from '../ui';
+import { SiteNav } from '../site-nav';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -9,8 +9,9 @@ export const metadata: Metadata = { robots: { index: false, follow: false, nocac
 /** Authenticated read-only shell. Every page below calls requirePrivate(); this layout renders no private data. */
 export default function AppLayout({ children }: { children: ReactNode }) {
   return <div className="column" data-source="authoritative" data-execution="disabled">
+    <SiteNav />
     <header className="topbar" style={{ display: 'flex' }}>
-      <a className="top-brand" href="/invoices"><Wordmark /></a>
+      <span>Daidai workspace</span>
       <span className="top-right">
         <span className="meta" role="note" aria-label="Data source">Authoritative · read-only</span>
         <form method="post" action="/api/session/logout">
