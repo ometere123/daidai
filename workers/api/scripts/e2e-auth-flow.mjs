@@ -32,7 +32,7 @@ try {
   const headed = process.argv.includes('--headed');
   browser = await chromium.launch({ executablePath, headless: !headed, slowMo: headed ? 180 : 0, args: ['--disable-extensions'] });
   await wait('http://127.0.0.1:8787/v1/health', r => r.status === 401);
-  const web = startWeb(3400, { DAIDAI_APP_ENABLED: '1', DAIDAI_LOCAL_PRODUCT: product ? '1' : '0' }); procs.push(web);
+  const web = startWeb(3400, { DAIDAI_APP_ENABLED: '1', DAIDAI_LOCAL_PRODUCT: product ? '1' : '0', DAIDAI_LOCAL_TEXTILE_PREVIEW: '0' }); procs.push(web);
   await wait('http://127.0.0.1:3400/');
   const base = 'http://127.0.0.1:3400';
   const ctx = await browser.newContext();

@@ -74,3 +74,10 @@ The Worker upgrades Miniflare, esbuild and viem, removes unused Wrangler from th
 ### Dependency verification
 
 `b920362` delivered the runbook and patched Worker graph. The next verification found the revised Worker package types no longer inferred the local runtime log streams under Ubuntu CI. The test fixture now declares Node Readable streams explicitly. The root dependency audit identified the transitive ws package. This branch pins its patched 8.21.0 release without changing core chain or registration logic. Root, Web and Worker package audits now report zero. Exact-head CI remains the approval record.
+
+
+### External integration recheck
+
+`fce0f31` patched root ws and made the Worker fixture types explicit. The final external recheck of the official Textile preview returned HTTP 200 and a validated indicative quote for a synthetic 1,500 cNGN target. The payer page supports this preview only through a server-controlled local opt-in. It sends chain, token pair and requested output amount. The self-contained demo keeps the synthetic source enabled so market availability cannot affect reproduction.
+
+Forno independently returned chain 42220, a finalized head and a matching registration transaction lookup. The canonical receipt lookup returned null. Canonical finality for that transaction could not be established through this endpoint in P11. A qualified provider remains necessary before any settlement evidence may be published. No settlement, firm quote or wallet action occurred.

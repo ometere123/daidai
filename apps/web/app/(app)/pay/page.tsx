@@ -1,3 +1,4 @@
+import { textilePreviewSource } from '../../../../../src/textile-preview-source';
 import { simulatePayoutObservation } from '../../../../../src/product-observation';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -17,7 +18,8 @@ export default async function PayerReview({ searchParams }: { searchParams: Prom
   const code = (await cookies()).get(productCookie)?.value;
   const reply = code ? await productCall({ kind: 'redeem', code }, token) : null;
   const invoice = reply?.kind === 'revision' ? reply.revisions[0] : undefined;
-  const quote = invoice ? await preparePreview(invoice, simulatedTextilePreview, Date.now) : null;
+  const livePreview = process.env.DAIDAI_LOCAL_TEXTILE_PREVIEW === '1';
+  const quote = invoice ? await preparePreview(invoice, livePreview ? textilePreviewSource() : simulatedTextilePreview, Date.now) : null;
   const observation = invoice && scenario === 'unknown' ? simulatePayoutObservation(invoice, { kind: 'unknown' }) : null;
   return <>
     <h1 className="title">Payer review</h1>
@@ -29,8 +31,8 @@ export default async function PayerReview({ searchParams }: { searchParams: Prom
       <section className="panel product-panel"><h2>Committed invoice</h2><Terms revision={invoice} />
         <p className="meta" style={{ overflowWrap: 'anywhere' }}>Celo Mainnet (42220) · USDt {usdt} · cNGN {cngn}</p>
       </section>
-      <section className="panel product-panel"><h2>Simulated Textile preview</h2>
-        <p>Indicative demo data. No liquidity was reserved and no firm quote exists.</p>
+      <section className="panel product-panel"><h2>{livePreview ? 'Live indicative Textile preview' : 'Simulated Textile preview'}</h2>
+        <p>{livePreview ? 'Textile’s non-reserving indicative price. Market data can be stale.' : 'Indicative demo data.'} No liquidity was reserved and no firm quote exists.</p>
         {quote?.kind === 'indicative' ? <dl>
           <dt>Conversion amount before fee</dt><dd>{amount(quote.base)} USDt</dd>
           <dt>Protocol fee</dt><dd>{amount(quote.fee)} USDt</dd>
