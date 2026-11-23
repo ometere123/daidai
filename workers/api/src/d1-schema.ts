@@ -6,6 +6,7 @@
  * The Worker never applies this schema. It is applied by tests and scripts/seed-local.mjs / invite.mjs only. P10.5 routes
  * write ONLY to the authentication tables (viewer_invitations, viewer_sessions, service_nonces), never to financial tables.
  */
+import { createLaunchRate } from './launch-rate.ts';
 import { LINEAGE_SCHEMA_STATEMENTS } from '../../../src/lineage-schema.ts';
 
 /** The subset of the D1 binding API used here. Structural, so tests can wrap it to observe queries. */
@@ -91,4 +92,5 @@ export async function applySchema(db: D1Like) {
     }
   }
   for (const sql of AUTH_SCHEMA_STATEMENTS) await db.prepare(sql).run();
+  if (!(await db.prepare(createLaunchRate).run()).success) throw Error("launch rate migration unavailable");
 }

@@ -5,6 +5,7 @@ main = "dist/worker.js"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = false
+preview_urls = false
 
 # LOCAL ONLY / NOT PROVISIONED. The id is a placeholder; no remote D1 database exists for this project.
 [[d1_databases]]
@@ -13,6 +14,7 @@ database_name = "daidai-local"
 database_id = "00000000-0000-0000-0000-000000000000"
 
 [vars]
+DAIDAI_LAUNCH_MODE = "closed"
 # Non-secret. The EIP-712 audience (origin) the stored authorizations were signed for.
 DAIDAI_AUDIENCE = "http://127.0.0.1:3000"
 

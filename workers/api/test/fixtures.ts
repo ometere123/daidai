@@ -28,7 +28,7 @@ export async function startWorker(o: { keys: Record<string, string>; persist?: s
     },
     modules: true, scriptPath: WORKER, compatibilityDate: '2024-11-01', compatibilityFlags: ['nodejs_compat'],
     d1Databases: { DB: 'daidai-local' }, d1Persist: o.persist ?? false,
-    bindings: { ...(o.product ? { DAIDAI_LOCAL_PRODUCT: 'isolated-miniflare' } : {}), DAIDAI_SERVICE_KEYS: JSON.stringify(o.keys), DAIDAI_AUDIENCE: o.audience ?? AUDIENCE },
+    bindings: { DAIDAI_LAUNCH_MODE: 'isolated-local', ...(o.product ? { DAIDAI_LOCAL_PRODUCT: 'isolated-miniflare' } : {}), DAIDAI_SERVICE_KEYS: JSON.stringify(o.keys), DAIDAI_AUDIENCE: o.audience ?? AUDIENCE },
   });
   await mf.ready;
   const db = await mf.getD1Database('DB') as unknown as D1Like;

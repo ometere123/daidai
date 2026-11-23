@@ -1,0 +1,6 @@
+{
+  "frontend": {"platform":"vercel","root":"apps/web","node":"22.x","productionPrivate":false,"previewPrivate":false},
+  "worker": {"platform":"cloudflare","routes":[],"mode":"closed","productionWrites":false},
+  "database": {"platform":"d1","binding":"DB","remoteMigration":false},
+  "financialExecution":false
+}

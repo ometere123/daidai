@@ -11,7 +11,7 @@ const keys = JSON.parse(line.slice('DAIDAI_SERVICE_KEYS='.length));
 const mf = new Miniflare({
   modules: true, scriptPath: WORKER, compatibilityDate: '2024-11-01', compatibilityFlags: ['nodejs_compat'],
   d1Databases: { DB: 'daidai-local' }, d1Persist: persistDir, host: '127.0.0.1', port: PORT,
-  bindings: { DAIDAI_LOCAL_PRODUCT: 'isolated-miniflare', DAIDAI_SERVICE_KEYS: keys, DAIDAI_AUDIENCE: process.env.DAIDAI_AUDIENCE ?? AUDIENCE },
+  bindings: { DAIDAI_LAUNCH_MODE: 'isolated-local', DAIDAI_DISTRIBUTED_RATE: '1', DAIDAI_LOCAL_PRODUCT: 'isolated-miniflare', DAIDAI_SERVICE_KEYS: keys, DAIDAI_AUDIENCE: process.env.DAIDAI_AUDIENCE ?? AUDIENCE },
 });
 const url = await mf.ready;
 console.log(`port ${url.port}`);

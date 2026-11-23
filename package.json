@@ -4,12 +4,13 @@
   "type": "module",
   "scripts": {
     "test": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/*.test.ts",
-    "typecheck": "tsc --noEmit --strict --target es2022 --module nodenext --allowImportingTsExtensions test/authoritative-invoice.test.ts test/attempt-lineage.test.ts test/p103-boundaries.test.ts test/p103-adversarial.test.ts test/p103-review.test.ts test/p103-review-adversarial.test.ts test/p104-lineage-policy.test.ts test/p104-contract.test.ts test/p104-adversarial.test.ts test/p105-adversarial.test.ts test/p11-product-quote.test.ts test/p105-celo-rpc.test.ts test/p105-claim-coordinator.test.ts test/invoice.test.ts test/wallet.test.ts test/security.test.ts test/integration.test.ts src/address-host.ts src/registration-host.ts src/wallet-diagnostic.ts",
+    "typecheck": "tsc --noEmit --strict --target es2022 --module nodenext --allowImportingTsExtensions test/authoritative-invoice.test.ts test/attempt-lineage.test.ts test/p103-boundaries.test.ts test/p103-adversarial.test.ts test/p103-review.test.ts test/p103-review-adversarial.test.ts test/p104-lineage-policy.test.ts test/p104-contract.test.ts test/p104-adversarial.test.ts test/p105-adversarial.test.ts test/p11-product-quote.test.ts test/p12-celo.test.ts test/p12-identity.test.ts test/p12-settlement.test.ts test/p105-celo-rpc.test.ts test/p105-claim-coordinator.test.ts test/invoice.test.ts test/wallet.test.ts test/security.test.ts test/integration.test.ts src/address-host.ts src/registration-host.ts src/wallet-diagnostic.ts",
     "test:browser": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/*-browser.test.mjs",
     "probe:celo": "node --experimental-strip-types scripts/probe-celo.mjs",
     "address:preflight": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/address-preflight.mjs",
     "wallet:diagnostic": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/wallet-diagnostic.mjs",
-    "registration": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/registration.mjs"
+    "registration": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/registration.mjs",
+    "demo:p12": "node scripts/p12-demo.mjs"
   },
   "dependencies": {
     "@celo/attribution-tags": "0.5.0",
