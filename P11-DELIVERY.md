@@ -40,3 +40,18 @@ Tests are pending for this checkpoint. Next action is to wire the authenticated 
 The public Forno probe used the existing four-method read-only transport against P08 registration evidence. It did not establish canonical finality: one probe failed receipt evidence validation and a follow-up timed out. Record this as blocked pending a qualified Celo provider. Deterministic Celo verification remains in the root suite. Active product commitments have no approved production payout observation pipeline.
 
 Next action is to checkpoint the browser validation, then review dependency advisories and refresh the full CI run.
+
+
+## Checkpoint 5
+
+`9e0ed52` recorded Textile and Celo evidence. The newly reseeded local Miniflare D1 → Worker → Next.js production build → Chromium flow passed 28/28 checks, including 11 P11 product checks at a 390 px viewport. It created, edited and committed 1,500 cNGN, opened a scoped read-only payer view, displayed 1.001 USDt including the simulated fee, blocked cross-origin writes, demonstrated uncertain payout, revoked access and cancelled without erasing the commitment. Zero wallet-provider calls. CI now runs the same full-stack flow.
+
+Reproduce from the repository root with Node 22 and Playwright Chromium: run npm ci in the root, apps/web and workers/api, then run the following. The seed resets only the ignored, disposable Worker D1 store.
+
+```sh
+npm --prefix apps/web run build
+npm --prefix workers/api run seed
+node workers/api/scripts/e2e-auth-flow.mjs --product
+```
+
+Next is dependency remediation and final security/operational review.
