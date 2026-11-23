@@ -24,6 +24,7 @@ const spy = () => { window.walletCalls = []; window.ethereum = { request(args) {
 
 /** Page-level demo-safety checks shared by every screen. */
 async function demoSafety(page, label) {
+  assert.equal(await page.locator('[data-source="fixture"][data-execution="disabled"]').count(), 1);
   const text = await page.evaluate(() => document.body.innerText);
   assert(!/\bdaidai\b/.test(text), label + ': lowercase brand "daidai" rendered');
   assert(!/0x[0-9a-fA-F]{64}/.test(text), label + ': 64-hex hash rendered in demo');

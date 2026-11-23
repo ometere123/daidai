@@ -205,6 +205,6 @@ export const scenarios: Record<string, Scenario> = {
   'reverted': { label: 'Reverted', id: 'INV-0041', view: 'progress', patch: i => ({ ...i, flow: 'payout-reverted' }) },
   'unknown': { label: 'Unknown outcome', id: 'INV-0039', view: 'progress', patch: i => i },
   'mismatch': { label: 'Mismatch', id: 'INV-0039', view: 'progress', patch: i => ({ ...i, flow: 'verified', evidence: { recipient: i.wallet, amount: 91_800n * UNIT, debit: i.quote?.pay ?? 0n } }) },
-  'checked': { label: 'Checked, safe to retry', id: 'INV-0039', view: 'progress', patch: i => ({ ...i, flow: 'checked' }) },
+  'checked': { label: 'Checked · New payout requires authoritative reconciliation, fresh preflight and explicit human approval', id: 'INV-0039', view: 'progress', patch: i => ({ ...i, flow: 'checked' }) },
   'settled': { label: 'Settled', id: 'INV-0032', view: 'progress', patch: i => i },
 };
