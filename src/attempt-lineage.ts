@@ -96,8 +96,12 @@ export class AttemptLineageStore {
     return this.db.prepare('SELECT * FROM attempts WHERE attempt_id = ?').get(attemptId) as Record<string, unknown> | undefined;
   }
 
-  /** Records a claimed attempt before any dispatch. A repeated identical claim is idempotent; a conflicting one is refused. */
-  recordAttempt(a: NewAttempt, reservation?: NonceReservation): 'created' | 'existing' {
+  /**
+   * Records a claimed attempt before any dispatch. A repeated identical claim is idempotent; a conflicting one is refused.
+   * `within` runs inside the same transaction, after the attempt and nonce rows are written, so extra durable evidence
+   * (the reviewed envelope) commits or rolls back together with the claim. It never runs for an existing claim.
+   */
+  recordAttempt(a: NewAttempt, reservation?: NonceReservation, within?: () => void): 'created' | 'existing' {
     validateNew(a);
     if (reservation) check(Number.isSafeInteger(reservation.chainId) && addressPattern.test(reservation.sender) &&
       Number.isSafeInteger(reservation.nonce) && reservation.nonce >= 0, 'invalid nonce reservation');
@@ -138,6 +142,7 @@ export class AttemptLineageStore {
           throw error;
         }
       }
+      within?.();
       this.event(a.attemptId, 'claimed', a.createdAtMs, { recordedRevision: a.recordedRevision, ...(reservation ? { nonce: reservation.nonce } : {}) });
       return 'created';
     });

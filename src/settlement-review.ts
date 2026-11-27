@@ -28,8 +28,8 @@ function reviewBound(i: Invoice, tx: Tx, action: Settlement['action'], debit: bi
 }
 
 type Bound = ReturnType<typeof reviewBound>;
-type Candidate = Readonly<Bound & { digest: string; bounds: Settlement['bounds'] }>;
-type Conversion = { readonly digest: string; readonly hash: Hex };
+export type Candidate = Readonly<Bound & { digest: string; bounds: Settlement['bounds'] }>;
+export type Conversion = { readonly digest: string; readonly hash: Hex };
 const prepared = new WeakSet<object>();
 const finalizedConversion = new WeakSet<object>();
 
@@ -65,6 +65,28 @@ export async function reviewConversion(raw: Invoice, proof: VerifiedAuthorizatio
   fresh();
   assertBalances(invoice, funds, ports.clock());
   return { kind: 'review', candidate, deadline, fee: atomic(quote.feeAmount), debit } as const;
+}
+
+/** True only for an envelope that this process reviewed and simulated. A copy or deserialized object is never prepared. */
+export function isPreparedCandidate(candidate: object) { return prepared.has(candidate); }
+
+/** The exact reviewed conversion, as persisted by the journal. Never trusted until the chain re-confirms it. */
+export type PersistedConversion = Readonly<{
+  digest: string; hash: Hex; sender: string; recipient: string; buyToken: string; sellToken: string;
+  amount: bigint; debit: bigint; tx: Tx; bounds: Settlement['bounds'];
+}>;
+
+/**
+ * Restart path (R08). Rebuilds the process-local "finalized conversion" proof from persisted facts by asking the chain
+ * again, using the same verification as a first-time conversion. Nothing is simulated or sent; a conversion the chain
+ * no longer confirms yields null and no payout can be prepared from it.
+ */
+export async function reverifyConversion(persisted: PersistedConversion, reader: Pick<CeloReader, 'verifySettlement'>): Promise<Conversion | null> {
+  const evidence = await reader.verifySettlement({ action: 'swap', ...persisted });
+  if (!evidence || !verified(evidence)) return null;
+  const result = Object.freeze({ digest: persisted.digest, hash: persisted.hash });
+  finalizedConversion.add(result);
+  return result;
 }
 
 export async function verifyConversion(candidate: Candidate, hash: Hex, reader: CeloReader): Promise<Conversion | null> {

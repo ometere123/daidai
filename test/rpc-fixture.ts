@@ -17,10 +17,10 @@ export function transfer(token: string, from: Hex, to: Hex, amount: bigint) {
 export function readFixture(sender: Hex, maker: Hex, amount: bigint, debit: bigint) {
   const transactions = new Map<string, Record<string, unknown>>();
   const receipts = new Map<string, Record<string, unknown>>();
-  const state = { code: '0x', simulatedDebit: debit, gas: '0x5208', finalized: '0x3', blockHash, chain: '0xa4ec', fee: 500_000n, rollupFee: 0n, payoutRecipient: undefined as Hex | undefined, afterSimulation: undefined as (() => void) | undefined };
+  const state = { nonce: feeFields.nonce as string, code: '0x', simulatedDebit: debit, gas: '0x5208', finalized: '0x3', blockHash, chain: '0xa4ec', fee: 500_000n, rollupFee: 0n, payoutRecipient: undefined as Hex | undefined, afterSimulation: undefined as (() => void) | undefined };
   const calls: string[] = [];
   const tradeLogs = (payment: bigint, buy = amount) => [transfer(usdt, sender, maker, payment), transfer(cngn, maker, sender, buy)];
-  const reader = new CeloReader(async (method, params) => {
+  const rpc = async (method: string, params: readonly unknown[]): Promise<unknown> => {
     calls.push(method);
     switch (method) {
       case 'eth_chainId': return state.chain;
@@ -28,8 +28,8 @@ export function readFixture(sender: Hex, maker: Hex, amount: bigint, debit: bigi
       case 'eth_getTransactionByHash': return transactions.get(String(params[0])) ?? null;
       case 'eth_getTransactionReceipt': return receipts.get(String(params[0])) ?? null;
       case 'eth_getBlockByNumber': return { number: params[0] === 'finalized' ? state.finalized : '0x2',
-        hash: state.blockHash, baseFeePerGas: '0x1' };
-      case 'eth_getTransactionCount': return feeFields.nonce;
+        hash: state.blockHash, baseFeePerGas: '0x1', timestamp: '0x65000000' };
+      case 'eth_getTransactionCount': return state.nonce;
       case 'eth_estimateGas': return state.gas;
       case 'eth_getBalance': return '0x200000';
       case 'eth_call': return '0x';
@@ -39,13 +39,14 @@ export function readFixture(sender: Hex, maker: Hex, amount: bigint, debit: bigi
           ? [transfer(cngn, sender, state.payoutRecipient, amount)] : tradeLogs(state.simulatedDebit) }] }];
       default: throw Error('unexpected RPC method');
     }
-  }, async () => ({ totalWei: state.fee, rollupWei: state.rollupFee }));
-  function mine(hash: Hex, tx: Tx, recipient: Hex, buy = amount) {
+  };
+  const reader = new CeloReader(rpc, async () => ({ totalWei: state.fee, rollupWei: state.rollupFee }));
+  function mine(hash: Hex, tx: Tx, recipient: Hex, buy = amount, nonce: string = feeFields.nonce) {
     transactions.set(hash, { hash, blockHash, blockNumber: '0x2', chainId: '0xa4ec',
-      from: sender, to: tx.to, input: tx.data, value: '0x0', ...feeFields });
+      from: sender, to: tx.to, input: tx.data, value: '0x0', ...feeFields, nonce });
     const logs = recipient === sender ? tradeLogs(debit, buy) : [transfer(cngn, sender, recipient, buy)];
     receipts.set(hash, { transactionHash: hash, blockHash, blockNumber: '0x2', status: '0x1',
       from: sender, to: tx.to, logs: logs.map((log, index) => ({ ...log, transactionHash: hash, blockHash, logIndex: '0x' + index.toString(16) })) });
   }
-  return { reader, state, transactions, receipts, mine, calls };
+  return { reader, rpc, state, transactions, receipts, mine, calls };
 }
