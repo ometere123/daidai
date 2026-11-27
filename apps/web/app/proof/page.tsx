@@ -1,6 +1,6 @@
 import { connection } from 'next/server';
-import { registration } from '../../../../src/public-registration';
 import { publicObservation } from '../../lib/public-observation';
+import { LiveCheck, RecordedRegistration, RegistrationVerdict } from '../evidence';
 import { SiteNav } from '../site-nav';
 
 import type { Metadata } from 'next';
@@ -10,17 +10,18 @@ export default async function Proof() {
   await connection();
   const report = await publicObservation();
   const fresh = Date.now() - report.observedAt <= 120_000;
-  return <><SiteNav /><main className="product-shell"><h1 className="title">Public verification</h1>
-    <p>Registration evidence is public. Invoice, conversion and payout records are private unless separately published.</p>
-    <section className="panel product-evidence"><h2>ERC-8004 registration · Agent #{registration.agent}</h2>
-      <p>{fresh ? report.status : 'unresolved · observation stale'}</p>
-      <p>Celo Mainnet · chain {registration.chain}</p>
-      <p>Wallet <code>{registration.wallet}</code></p><p>Registry <code>{registration.registry}</code></p>
-      <a href={'https://celoscan.io/tx/' + registration.hash}><code>{registration.hash}</code> ↗</a>
-      <p><time dateTime={new Date(report.observedAt).toISOString()}>{new Date(report.observedAt).toISOString()}</time></p>
-      {report.providers.map(p => <div key={p.name}><strong>{p.name}</strong><p>{p.kind}</p>
-        {p.kind === 'finalized registration' && <p>Successful receipt · ERC-721 mint to the registered wallet · block {p.height} · finalized head {p.head}<br /><code>{p.blockHash}</code></p>}</div>)}
+  const corroborated = fresh && report.status === 'independently verified';
+  return <><SiteNav /><main id="main" className="product-shell"><h1 className="title">Public verification</h1>
+    <p>Two separate questions: is this agent registered, and has it settled any money? They have separate evidence and are never mixed.</p>
+    <h2 className="proof-heading">1. Registration</h2>
+    <RegistrationVerdict corroborated={corroborated} />
+    <RecordedRegistration />
+    <LiveCheck status={fresh ? report.status : 'unresolved · observation stale'} observedAt={report.observedAt} providers={report.providers} />
+    <h2 className="proof-heading">2. Settlement</h2>
+    <section className="panel" aria-labelledby="settlement-title">
+      <h2 id="settlement-title">Settlement evidence</h2>
+      <p>No verified USDt conversion or cNGN payout has been published.</p>
+      <p className="evidence-note">When one exists it will appear here with both transaction references, the actual USDt debit including the fee, the exact cNGN credited, the date each was verified, and the recipient’s acknowledgement. Live settlement is not yet authorised.</p>
     </section>
-    <section className="panel"><h2>Settlement evidence</h2><p>No verified USDt conversion or cNGN payout has been published.</p></section>
   </main></>;
 }
