@@ -6,7 +6,7 @@ import { qualify, REGISTRATION_TX } from '../scripts/m0-qualify.mjs';
 
 type Behaviour = { chain?: string; simulate?: 'logs' | 'no-method' | 'no-logs' | 'revert'; hashSalt?: string; l1Fee?: boolean; leakInError?: boolean };
 const A = 'https://rpc.node-a.invalid/v2/SECRETTOKENAAA111';
-const B = 'https://celo-mainnet.g.alchemy.com/v2/SECRETTOKENBBB222';
+const B = 'https://fixture-endpoint.quiknode.pro/SECRETTOKENBBB222';
 const TRANSFER = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const h = (salt: string, n: bigint) => '0x' + (salt + n.toString(16)).padEnd(64, '0').slice(0, 64);
 
@@ -46,7 +46,7 @@ test('M0-1: two independent providers with simulation logs, finality and agreeme
   assert.equal(report.credentialsPrinted, false);
   const text = JSON.stringify(report);
   assert(!/SECRETTOKEN/.test(text) && !text.includes('node-a.invalid') && !text.includes('/v2/SECRET'), 'provider URLs and keys must never appear');
-  assert.deepEqual(report.providers.map((p: { label: string; vendor: string }) => [p.label, p.vendor]), [['provider-1', 'other'], ['provider-2', 'alchemy']]);
+  assert.deepEqual(report.providers.map((p: { label: string; vendor: string }) => [p.label, p.vendor]), [['provider-1', 'other'], ['provider-2', 'quicknode']]);
   assert.deepEqual(report.textile.rfqPaths, ['/v2/rfq/preview', '/v2/rfq/request']);
 });
 
