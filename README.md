@@ -1,66 +1,54 @@
 # Daidai
 
-**Agents Open for Business on Celo.** Daidai is an agent that prepares exact-amount stablecoin invoice settlement on Celo: a USDt-to-cNGN conversion and a separate exact cNGN payout, each approved by a dedicated wallet owner.
+**Two currencies. One agreement. Verified settlement.**
 
-## Agent identity (ERC-8004)
+Daidai is a human-authorised financial commitment agent for the Celo Agents Open for Business hackathon (Stablecoin Corridors / Textile FX). A supplier requests an exact cNGN amount, a payer approves a USDt conversion ceiling, and Daidai prepares and reconciles the two financial operations. The intended breakthrough is recovering the obligation after an interruption without repeating a completed conversion or payout.
 
-| | |
-| --- | --- |
-| Agent ID | **10103** |
-| Network | Celo Mainnet (chain 42220) |
-| Registered by | `0xe4f6b961e91b1c5c17ff34a33cbb5a998589e49e` |
-| Registration transaction | `0xdefee0ab7ede1b8d787b195218cc922681364af1f42264f4332fd3309672161b` |
-| Metadata | [DAIDAI-ERC8004-METADATA.json](DAIDAI-ERC8004-METADATA.json) |
+**Current status (2026-11-27):** tested offline control plane; live settlement disabled; no verified live Textile conversion or external payout. This blueprint describes the target, not a completed product. The public deployment provenance is unresolved. Never confuse the synthetic demo with live settlement.
 
-Details: [registration outcome](P08B23-REGISTRATION-OUTCOME.md). The `/agent` and `/proof` pages re-check this registration against two public Celo RPC providers at request time. If either provider is unreachable or they disagree, they report **unresolved** rather than guessing.
+## Identity (preserve existing enrollment)
 
-## Honest status
+- Celo mainnet, chain 42220; recorded ERC-8004 agent #10103.
+- Enrolled wallet / recorded registrant: 0xe4f6b961e91b1c5c17ff34a33cbb5a998589e49e.
+- Registration transaction: [explorer](https://celoscan.io/tx/0xdefee0ab7ede1b8d787b195218cc922681364af1f42264f4332fd3309672161b).
+- Assigned attribution: celo_597f1146c487. See [enrollment](P08B12-LOOPS-WALLET-ENROLLMENT.md) and [registration outcome](P08B23-REGISTRATION-OUTCOME.md). Historical records, not a fresh Loops or chain verification. Do not re-register or change wallet to implement this blueprint.
+- [Metadata](DAIDAI-ERC8004-METADATA.json) · [official event](https://www.loops.house/agents-open-for-business).
 
-- **No live settlement has happened.** No USDt has been converted and no cNGN paid out. The first real settlement is a separately authorised milestone. `/proof` keeps registration evidence apart from settlement evidence and says so.
-- Textile pricing is **indicative only**, with no reservation. If a quote cannot be fetched or validated the UI shows "Quote unavailable".
-- The agent does not sign, approve tokens or broadcast transactions. Financial execution is disabled.
-- Nothing here is deployed publicly yet. See [P13-DELIVERY.md](P13-DELIVERY.md) for the deployment approval packet.
+## Start here
 
-## What is in the repo
+Node 22 (22.23.3 previously tested), npm and Chromium. From repository root:
 
-| Path | Contents |
-| --- | --- |
-| `src/`, `test/` | Settlement adapter, invoice core, attempt lineage and offline tests (synthetic invoices, mock provider, temporary SQLite) |
-| `workers/api/` | Cloudflare Worker and D1 backend (HMAC service auth, tenant isolation, capability revocation), tested locally on Miniflare |
-| `apps/web/` | Next.js 16 app: landing, `/agent`, `/proof`, `/demo` (synthetic, labelled), `/pay`, and the private `/login`, `/invoices`, `/activity` routes |
+    npm ci --ignore-scripts --no-audit --no-fund
+    npm run typecheck
+    npm test
+    npm --prefix apps/web ci
+    npm --prefix workers/api ci
+    npm --prefix apps/web run dev
 
-Private routes return 404 unless the release gate is explicitly opened. The public profile exposes only `/`, `/agent`, `/proof`, `/demo` and a `/pay` availability notice.
+Public routes: /, /agent, /proof, /demo, /pay (availability notice when closed). No real transaction from the current public product. For the existing isolated full-stack fixture journey:
 
-## Review and reproduce
+    npx --yes playwright@1.65.1 install chromium
+    npm run demo:p12 -- product
+    npm run demo:p12 -- chain
 
-Use Node 22 (22.23.3 or a compatible release).
+The first command installs the pinned browser tooling; product mode recreates disposable local fixture data. Chain mode is read-only and may fail if providers are unavailable. Do not run fixture seeding against real pilot storage. See [runbook](ops/P12-RUNBOOK.md). Additional checks:
 
-~~~sh
-npm ci --ignore-scripts --no-audit --no-fund
-npm run typecheck
-npm test            # backend tests, offline, no secrets
-~~~
+    npm run test:browser
+    npm --prefix workers/api run typecheck
+    npm --prefix workers/api test
+    npm --prefix apps/web run typecheck
+    npm --prefix apps/web run build
 
-Further suites (see `.github/workflows/ci.yml` for the exact commands):
+Use [.github/workflows/ci.yml](.github/workflows/ci.yml) for the complete browser/build matrix, including DAIDAI_CHROMIUM_PATH if required. Baseline recorded: 279 root, 158 Worker, 33 root browser, 30 full-journey checks; [successful baseline CI](https://github.com/ometere123/daidai/actions/runs/46015898395). Not a live settlement test.
 
-~~~sh
-npm run test:browser                       # root browser tests (Chromium)
-cd workers/api && npm ci && npm test       # Worker and D1 tests
-cd apps/web && npm ci && npm run typecheck && npm run build
-~~~
+## Configuration and release
 
-All suites run offline with synthetic data and no secrets. CI runs them on every pull request, plus a full local merchant-to-payer journey (D1, Worker, Next.js and Chromium) and a secret scan. The last verified run: backend 279/279, Worker 158/158, root browser 33/33, full journey 30/30.
+Public profile: DAIDAI_PUBLIC_RELEASE=1, DAIDAI_APP_ENABLED=0, DAIDAI_PREVIEW_ACCESS=0, DAIDAI_LOCAL_PRODUCT=0. No private API credentials or signer. Local product requires DAIDAI_LOCAL_PRODUCT=1, app gate, loopback DAIDAI_API_BASE_URL and existing service credentials (DAIDAI_SERVICE_KEY_ID, DAIDAI_SERVICE_KEY; Worker DAIDAI_SERVICE_KEYS in ignored .dev.vars). DAIDAI_LOCAL_TEXTILE_PREVIEW=0 disables real preview requests. Do not publish secrets or change remote settings from these instructions. The local financial pilot runner is **not implemented**; see architecture and milestones before enabling any dispatch.
 
-## Documents
+Stack: TypeScript, Node 22, viem, existing MetaMask EIP-1193 bridge, SQLite, Next.js 16 / React 19, Worker/D1 local fixture and authenticated read-only workflow, Textile RFQ v2, ERC-8004/8021. No new framework or model required.
 
-- [Wallet architecture](WALLET-ARCHITECTURE-DECISION.md)
-- [Executed tests and remaining gaps](WALLET-ADAPTER-TEST-REPORT.md)
-- [Wallet enrollment checklist](WALLET-ENROLLMENT-CHECKLIST.md)
-- [P13 delivery and verification record](P13-DELIVERY.md)
-- [Controlled launch plan](P12-CONTROLLED-LAUNCH.md)
+## Governing documents
 
-The starter framework informs project organization: [Starter framework](https://github.com/udaysharmadev/Hackathon-Starter-Pack-Complete-Guide-Roadmap)
+[Project decision](docs/PROJECT.md) · [PRD](docs/PRD.md) · [Architecture](docs/ARCHITECTURE.md) · [Design](docs/DESIGN.md) · [Implementation](docs/IMPLEMENTATION.md) · [Testing](docs/TESTING.md) · [Demo](docs/DEMO.md) · [Agent instructions](AGENTS.md) · [Handover](PROGRESS.md). These govern the next build; historical P08–P13 reports remain evidence, not competing requirements.
 
-## License
-
-Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Apache 2.0. See LICENSE and NOTICE.
