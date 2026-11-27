@@ -1,0 +1,1688 @@
+
+> test
+> node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/*.test.ts
+
+TAP version 13
+# Subtest: a claimed attempt keeps its recorded revision and identity; history is appended, never rewritten
+ok 1 - a claimed attempt keeps its recorded revision and identity; history is appended, never rewritten
+  ---
+  duration_ms: 175.478541
+  type: 'test'
+  ...
+# Subtest: duplicate claims are idempotent; a conflicting claim under the same id is refused
+ok 2 - duplicate claims are idempotent; a conflicting claim under the same id is refused
+  ---
+  duration_ms: 28.147146
+  type: 'test'
+  ...
+# Subtest: only one open attempt per operation, and reconciled-not-landed closure is disabled
+ok 3 - only one open attempt per operation, and reconciled-not-landed closure is disabled
+  ---
+  duration_ms: 13.60528
+  type: 'test'
+  ...
+# Subtest: concurrent claims from two connections: exactly one wins
+ok 4 - concurrent claims from two connections: exactly one wins
+  ---
+  duration_ms: 14.152253
+  type: 'test'
+  ...
+# Subtest: a crash after the claim and before a hash leaves a retained, hashless attempt
+ok 5 - a crash after the claim and before a hash leaves a retained, hashless attempt
+  ---
+  duration_ms: 15.061098
+  type: 'test'
+  ...
+# Subtest: hashes are set once; a different hash or a reused hash is refused by SQLite
+ok 6 - hashes are set once; a different hash or a reused hash is refused by SQLite
+  ---
+  duration_ms: 32.415292
+  type: 'test'
+  ...
+# Subtest: identity, closure and history are immutable at the database level
+ok 7 - identity, closure and history are immutable at the database level
+  ---
+  duration_ms: 28.283989
+  type: 'test'
+  ...
+# Subtest: the reader connection cannot write
+ok 8 - the reader connection cannot write
+  ---
+  duration_ms: 18.41724
+  type: 'test'
+  ...
+# Subtest: legacy attempts without a provable revision are imported as unresolved and never guessed
+ok 9 - legacy attempts without a provable revision are imported as unresolved and never guessed
+  ---
+  duration_ms: 27.083362
+  type: 'test'
+  ...
+# Subtest: invalid claims are refused before anything is written
+ok 10 - invalid claims are refused before anything is written
+  ---
+  duration_ms: 9.687409
+  type: 'test'
+  ...
+# Subtest: authorization precedes access and absent or cross-invoice grants read nothing
+ok 11 - authorization precedes access and absent or cross-invoice grants read nothing
+  ---
+  duration_ms: 1.450178
+  type: 'test'
+  ...
+# Subtest: server snapshot binds digest and tenant and rejects fixture data
+ok 12 - server snapshot binds digest and tenant and rejects fixture data
+  ---
+  duration_ms: 0.473674
+  type: 'test'
+  ...
+# Subtest: matching independently finalized conversion and payout can settle
+ok 13 - matching independently finalized conversion and payout can settle
+  ---
+  duration_ms: 1.540064
+  type: 'test'
+  ...
+# Subtest: wrongChain evidence cannot establish paid status
+ok 14 - wrongChain evidence cannot establish paid status
+  ---
+  duration_ms: 0.474727
+  type: 'test'
+  ...
+# Subtest: wrongToken evidence cannot establish paid status
+ok 15 - wrongToken evidence cannot establish paid status
+  ---
+  duration_ms: 0.365584
+  type: 'test'
+  ...
+# Subtest: wrongRecipient evidence cannot establish paid status
+ok 16 - wrongRecipient evidence cannot establish paid status
+  ---
+  duration_ms: 0.336521
+  type: 'test'
+  ...
+# Subtest: wrongAmount evidence cannot establish paid status
+ok 17 - wrongAmount evidence cannot establish paid status
+  ---
+  duration_ms: 0.310484
+  type: 'test'
+  ...
+# Subtest: wrongRecordedRevision evidence cannot establish paid status
+ok 18 - wrongRecordedRevision evidence cannot establish paid status
+  ---
+  duration_ms: 0.216561
+  type: 'test'
+  ...
+# Subtest: wrongAttempt evidence cannot establish paid status
+ok 19 - wrongAttempt evidence cannot establish paid status
+  ---
+  duration_ms: 0.458037
+  type: 'test'
+  ...
+# Subtest: fixtureEvidence evidence cannot establish paid status
+ok 20 - fixtureEvidence evidence cannot establish paid status
+  ---
+  duration_ms: 0.390402
+  type: 'test'
+  ...
+# Subtest: malformedAtomic evidence cannot establish paid status
+ok 21 - malformedAtomic evidence cannot establish paid status
+  ---
+  duration_ms: 0.195277
+  type: 'test'
+  ...
+# Subtest: over-cap conversion cannot establish settlement
+ok 22 - over-cap conversion cannot establish settlement
+  ---
+  duration_ms: 0.230898
+  type: 'test'
+  ...
+# Subtest: a source label without the in-process attestation never establishes authority
+ok 23 - a source label without the in-process attestation never establishes authority
+  ---
+  duration_ms: 0.621575
+  type: 'test'
+  ...
+# Subtest: reorg chain observation cannot establish settlement
+ok 24 - reorg chain observation cannot establish settlement
+  ---
+  duration_ms: 0.268827
+  type: 'test'
+  ...
+# Subtest: notFinalized chain observation cannot establish settlement
+ok 25 - notFinalized chain observation cannot establish settlement
+  ---
+  duration_ms: 0.169028
+  type: 'test'
+  ...
+# Subtest: stale chain observation cannot establish settlement
+ok 26 - stale chain observation cannot establish settlement
+  ---
+  duration_ms: 0.152609
+  type: 'test'
+  ...
+# Subtest: wrong-purpose consent cannot establish settlement
+ok 27 - wrong-purpose consent cannot establish settlement
+  ---
+  duration_ms: 0.232303
+  type: 'test'
+  ...
+# Subtest: missing payout hash retains attempt and does not ask for payout transaction proof or settle
+ok 28 - missing payout hash retains attempt and does not ask for payout transaction proof or settle
+  ---
+  duration_ms: 0.275151
+  type: 'test'
+  ...
+# Subtest: projection does not forward private payloads from any source
+ok 29 - projection does not forward private payloads from any source
+  ---
+  duration_ms: 0.346815
+  type: 'test'
+  ...
+# Subtest: mixed revisions: attempts keep their recorded revision while the invoice advances, and still settle
+ok 30 - mixed revisions: attempts keep their recorded revision while the invoice advances, and still settle
+  ---
+  duration_ms: 0.217453
+  type: 'test'
+  ...
+# Subtest: evidence relabelled with the newest revision is rejected (no automatic relabelling of old attempts)
+ok 31 - evidence relabelled with the newest revision is rejected (no automatic relabelling of old attempts)
+  ---
+  duration_ms: 0.141842
+  type: 'test'
+  ...
+# Subtest: an attempt claiming a revision newer than the committed invoice is a mismatch
+ok 32 - an attempt claiming a revision newer than the committed invoice is a mismatch
+  ---
+  duration_ms: 0.122543
+  type: 'test'
+  ...
+# Subtest: unresolved legacy lineage is retained for reconciliation and never settles
+ok 33 - unresolved legacy lineage is retained for reconciliation and never settles
+  ---
+  duration_ms: 0.163285
+  type: 'test'
+  ...
+# Subtest: two open attempts for one operation fail closed as multiple-attempts
+ok 34 - two open attempts for one operation fail closed as multiple-attempts
+  ---
+  duration_ms: 0.227271
+  type: 'test'
+  ...
+# Subtest: a reconciled-not-landed claim is not trusted: the earlier attempt still counts and settlement fails closed
+ok 35 - a reconciled-not-landed claim is not trusted: the earlier attempt still counts and settlement fails closed
+  ---
+  duration_ms: 0.230832
+  type: 'test'
+  ...
+# Subtest: cross-tenant or cross-commitment attempts are a mismatch
+ok 36 - cross-tenant or cross-commitment attempts are a mismatch
+  ---
+  duration_ms: 0.269877
+  type: 'test'
+  ...
+# Subtest: an authorization that expired after both finalized executions is verified-at-execution and settles
+ok 37 - an authorization that expired after both finalized executions is verified-at-execution and settles
+  ---
+  duration_ms: 0.308631
+  type: 'test'
+  ...
+# Subtest: execution at or after expiry stays stale-expired and cannot settle
+ok 38 - execution at or after expiry stays stale-expired and cannot settle
+  ---
+  duration_ms: 0.287028
+  type: 'test'
+  ...
+# Subtest: an expired authorization without finalized execution evidence is stale, not historical
+ok 39 - an expired authorization without finalized execution evidence is stale, not historical
+  ---
+  duration_ms: 0.149338
+  type: 'test'
+  ...
+# Subtest: an attempt claimed under a different authorization makes the authorization unverified
+ok 40 - an attempt claimed under a different authorization makes the authorization unverified
+  ---
+  duration_ms: 0.465021
+  type: 'test'
+  ...
+# Subtest: official Textile scope fixes domain, type order, chain, nonce and millisecond time
+ok 41 - official Textile scope fixes domain, type order, chain, nonce and millisecond time
+  ---
+  duration_ms: 43.365863
+  type: 'test'
+  ...
+# Subtest: real localhost bootstrap and mock proof run deny foreign origin, replay and generic signing
+ok 42 - real localhost bootstrap and mock proof run deny foreign origin, replay and generic signing
+  ---
+  duration_ms: 103.332094
+  type: 'test'
+  ...
+# Subtest: delayed browser confirmation refuses a stale swap job before any provider send
+ok 43 - delayed browser confirmation refuses a stale swap job before any provider send
+  ---
+  duration_ms: 14.943278
+  type: 'test'
+  ...
+# Subtest: immutable canonical commitment and version-bound approval
+ok 44 - immutable canonical commitment and version-bound approval
+  ---
+  duration_ms: 11.548662
+  type: 'test'
+  ...
+# Subtest: zero consent rejects
+ok 45 - zero consent rejects
+  ---
+  duration_ms: 9.011237
+  type: 'test'
+  ...
+# Subtest: oversize no quote is persisted without broadcast
+ok 46 - oversize no quote is persisted without broadcast
+  ---
+  duration_ms: 7.925057
+  type: 'test'
+  ...
+# Subtest: accept cutoff rejects before broadcast
+ok 47 - accept cutoff rejects before broadcast
+  ---
+  duration_ms: 9.910824
+  type: 'test'
+  ...
+# Subtest: order deadline rejects before broadcast
+ok 48 - order deadline rejects before broadcast
+  ---
+  duration_ms: 10.183687
+  type: 'test'
+  ...
+# Subtest: cap breach rejects before broadcast
+ok 49 - cap breach rejects before broadcast
+  ---
+  duration_ms: 7.488036
+  type: 'test'
+  ...
+# Subtest: wrong token rejects before broadcast
+ok 50 - wrong token rejects before broadcast
+  ---
+  duration_ms: 13.827232
+  type: 'test'
+  ...
+# Subtest: wrong chain rejects before broadcast
+ok 51 - wrong chain rejects before broadcast
+  ---
+  duration_ms: 9.091572
+  type: 'test'
+  ...
+# Subtest: partial output rejects before broadcast
+ok 52 - partial output rejects before broadcast
+  ---
+  duration_ms: 13.148813
+  type: 'test'
+  ...
+# Subtest: incorrect spender rejects before broadcast
+ok 53 - incorrect spender rejects before broadcast
+  ---
+  duration_ms: 22.757575
+  type: 'test'
+  ...
+# Subtest: insufficient usdt
+ok 54 - insufficient usdt
+  ---
+  duration_ms: 8.676602
+  type: 'test'
+  ...
+# Subtest: insufficient gas
+ok 55 - insufficient gas
+  ---
+  duration_ms: 8.223334
+  type: 'test'
+  ...
+# Subtest: insufficient allowance
+ok 56 - insufficient allowance
+  ---
+  duration_ms: 14.843265
+  type: 'test'
+  ...
+# Subtest: expired then late fill requires independent exact receipt
+ok 57 - expired then late fill requires independent exact receipt
+  ---
+  duration_ms: 15.560973
+  type: 'test'
+  ...
+# Subtest: failed then late fill requires independent exact receipt
+ok 58 - failed then late fill requires independent exact receipt
+  ---
+  duration_ms: 25.330493
+  type: 'test'
+  ...
+# Subtest: wrong recipient payout rejects
+ok 59 - wrong recipient payout rejects
+  ---
+  duration_ms: 22.787875
+  type: 'test'
+  ...
+# Subtest: payout crash, restart, duplicate retry and eventual payment
+ok 60 - payout crash, restart, duplicate retry and eventual payment
+  ---
+  duration_ms: 16.862643
+  type: 'test'
+  ...
+# Subtest: reverted payout after completed conversion preserves conversion and blocks retries
+ok 61 - reverted payout after completed conversion preserves conversion and blocks retries
+  ---
+  duration_ms: 12.279757
+  type: 'test'
+  ...
+# Subtest: SDK round trip for approval, identity, batch swap and payout
+ok 62 - SDK round trip for approval, identity, batch swap and payout
+  ---
+  duration_ms: 0.925487
+  type: 'test'
+  ...
+# Subtest: baseline: fully verified harness settles (sanity)
+ok 63 - baseline: fully verified harness settles (sanity)
+  ---
+  duration_ms: 2.322283
+  type: 'test'
+  ...
+# Subtest: settlement refused: conversion debit zero
+ok 64 - settlement refused: conversion debit zero
+  ---
+  duration_ms: 0.336169
+  type: 'test'
+  ...
+# Subtest: settlement refused: conversion debit over cap
+ok 65 - settlement refused: conversion debit over cap
+  ---
+  duration_ms: 0.258386
+  type: 'test'
+  ...
+# Subtest: settlement refused: payout carries a debit
+ok 66 - settlement refused: payout carries a debit
+  ---
+  duration_ms: 0.245688
+  type: 'test'
+  ...
+# Subtest: settlement refused: output one atom short
+ok 67 - settlement refused: output one atom short
+  ---
+  duration_ms: 0.394243
+  type: 'test'
+  ...
+# Subtest: settlement refused: output one atom over
+ok 68 - settlement refused: output one atom over
+  ---
+  duration_ms: 0.223675
+  type: 'test'
+  ...
+# Subtest: settlement refused: negative amount
+ok 69 - settlement refused: negative amount
+  ---
+  duration_ms: 0.233489
+  type: 'test'
+  ...
+# Subtest: settlement refused: leading zero amount
+ok 70 - settlement refused: leading zero amount
+  ---
+  duration_ms: 0.213465
+  type: 'test'
+  ...
+# Subtest: settlement refused: hex amount
+ok 71 - settlement refused: hex amount
+  ---
+  duration_ms: 0.323776
+  type: 'test'
+  ...
+# Subtest: settlement refused: huge debit >= 2^256
+ok 72 - settlement refused: huge debit >= 2^256
+  ---
+  duration_ms: 0.40743
+  type: 'test'
+  ...
+# Subtest: settlement refused: numeric (not string) amount
+ok 73 - settlement refused: numeric (not string) amount
+  ---
+  duration_ms: 0.2945
+  type: 'test'
+  ...
+# Subtest: settlement refused: uppercase recipient
+ok 74 - settlement refused: uppercase recipient
+  ---
+  duration_ms: 0.16031
+  type: 'test'
+  ...
+# Subtest: settlement refused: non-lowercase block hash
+ok 75 - settlement refused: non-lowercase block hash
+  ---
+  duration_ms: 0.103865
+  type: 'test'
+  ...
+# Subtest: settlement refused: hash of the other attempt
+ok 76 - settlement refused: hash of the other attempt
+  ---
+  duration_ms: 0.146082
+  type: 'test'
+  ...
+# Subtest: settlement refused: other tenant
+ok 77 - settlement refused: other tenant
+  ---
+  duration_ms: 0.140152
+  type: 'test'
+  ...
+# Subtest: settlement refused: other digest
+ok 78 - settlement refused: other digest
+  ---
+  duration_ms: 0.092569
+  type: 'test'
+  ...
+# Subtest: settlement refused: other operation label
+ok 79 - settlement refused: other operation label
+  ---
+  duration_ms: 0.126387
+  type: 'test'
+  ...
+# Subtest: settlement refused: success false
+ok 80 - settlement refused: success false
+  ---
+  duration_ms: 0.116761
+  type: 'test'
+  ...
+# Subtest: settlement refused: success truthy string
+ok 81 - settlement refused: success truthy string
+  ---
+  duration_ms: 0.089331
+  type: 'test'
+  ...
+# Subtest: settlement refused: wrong sender
+ok 82 - settlement refused: wrong sender
+  ---
+  duration_ms: 0.083365
+  type: 'test'
+  ...
+# Subtest: settlement refused: conversion delivered to recipient instead of taker
+ok 83 - settlement refused: conversion delivered to recipient instead of taker
+  ---
+  duration_ms: 0.08218
+  type: 'test'
+  ...
+# Subtest: settlement refused: payout finalized before conversion, same-height fork, not final
+ok 84 - settlement refused: payout finalized before conversion, same-height fork, not final
+  ---
+  duration_ms: 0.482924
+  type: 'test'
+  ...
+# Subtest: settlement refused: same attempt or hash used for both operations
+ok 85 - settlement refused: same attempt or hash used for both operations
+  ---
+  duration_ms: 0.226122
+  type: 'test'
+  ...
+# Subtest: settlement refused: attempt recorded at a revision newer than the invoice, or tx relabelled to newest revision
+ok 86 - settlement refused: attempt recorded at a revision newer than the invoice, or tx relabelled to newest revision
+  ---
+  duration_ms: 0.262925
+  type: 'test'
+  ...
+# Subtest: settlement refused: missing authorizations or wrong audience/signer/expiry
+ok 87 - settlement refused: missing authorizations or wrong audience/signer/expiry
+  ---
+  duration_ms: 0.785409
+  type: 'test'
+  ...
+# Subtest: forgeries of attested records lose the brand
+ok 88 - forgeries of attested records lose the brand
+  ---
+  duration_ms: 0.243589
+  type: 'test'
+  ...
+# Subtest: forged (json) evidence never settles or reads
+ok 89 - forged (json) evidence never settles or reads
+  ---
+  duration_ms: 0.612614
+  type: 'test'
+  ...
+# Subtest: forged (structuredClone) evidence never settles or reads
+ok 90 - forged (structuredClone) evidence never settles or reads
+  ---
+  duration_ms: 0.416513
+  type: 'test'
+  ...
+# Subtest: forged (spread) evidence never settles or reads
+ok 91 - forged (spread) evidence never settles or reads
+  ---
+  duration_ms: 0.351142
+  type: 'test'
+  ...
+# Subtest: forged (frozenCopy) evidence never settles or reads
+ok 92 - forged (frozenCopy) evidence never settles or reads
+  ---
+  duration_ms: 0.341037
+  type: 'test'
+  ...
+# Subtest: forged (objectCreate) evidence never settles or reads
+ok 93 - forged (objectCreate) evidence never settles or reads
+  ---
+  duration_ms: 0.482175
+  type: 'test'
+  ...
+# Subtest: forged (proxy) evidence never settles or reads
+ok 94 - forged (proxy) evidence never settles or reads
+  ---
+  duration_ms: 0.389699
+  type: 'test'
+  ...
+# Subtest: forged (reattestedProxyTarget) evidence never settles or reads
+ok 95 - forged (reattestedProxyTarget) evidence never settles or reads
+  ---
+  duration_ms: 0.324614
+  type: 'test'
+  ...
+# Subtest: attested array of attempts with extra properties / non-array is not accepted as evidence
+ok 96 - attested array of attempts with extra properties / non-array is not accepted as evidence
+  ---
+  duration_ms: 0.200826
+  type: 'test'
+  ...
+# Subtest: prototype pollution does not create authority
+ok 97 - prototype pollution does not create authority
+  ---
+  duration_ms: 0.440525
+  type: 'test'
+  ...
+# Subtest: attested record with a value-changing accessor cannot yield an inconsistent settled projection
+ok 98 - attested record with a value-changing accessor cannot yield an inconsistent settled projection
+  ---
+  duration_ms: 0.242594
+  type: 'test'
+  ...
+# Subtest: historical: both before expiry -> verified-at-execution and settled (sanity)
+ok 99 - historical: both before expiry -> verified-at-execution and settled (sanity)
+  ---
+  duration_ms: 0.190054
+  type: 'test'
+  ...
+# Subtest: historical: execution exactly at expiry, or only one side manipulated, stays stale
+ok 100 - historical: execution exactly at expiry, or only one side manipulated, stays stale
+  ---
+  duration_ms: 0.408566
+  type: 'test'
+  ...
+# Subtest: historical: only one operation verified gives no verified-at-execution
+ok 101 - historical: only one operation verified gives no verified-at-execution
+  ---
+  duration_ms: 0.193214
+  type: 'test'
+  ...
+# Subtest: historical: attempt claimed under a different fingerprint / after expiry is unverified
+ok 102 - historical: attempt claimed under a different fingerprint / after expiry is unverified
+  ---
+  duration_ms: 0.338714
+  type: 'test'
+  ...
+# Subtest: historical: authorization observation older than maxObservationAgeMs is stale
+ok 103 - historical: authorization observation older than maxObservationAgeMs is stale
+  ---
+  duration_ms: 0.218966
+  type: 'test'
+  ...
+# Subtest: lineage: SQL cannot mutate identity, rewrite hash, reopen, or delete
+ok 104 - lineage: SQL cannot mutate identity, rewrite hash, reopen, or delete
+  ---
+  duration_ms: 17.423499
+  type: 'test'
+  ...
+# Subtest: settlement refused: attempt with non-canonical (uppercase) hash
+ok 105 - settlement refused: attempt with non-canonical (uppercase) hash
+  ---
+  duration_ms: 0.376255
+  type: 'test'
+  ...
+# Subtest: FIXED (adversarial finding): lineage INSERT OR REPLACE bypasses identity-immutable and no-delete triggers
+ok 106 - FIXED (adversarial finding): lineage INSERT OR REPLACE bypasses identity-immutable and no-delete triggers
+  ---
+  duration_ms: 10.084192
+  type: 'test'
+  ...
+# Subtest: FIXED (adversarial finding): lineage INSERT OR REPLACE rewrites append-only event history
+ok 107 - FIXED (adversarial finding): lineage INSERT OR REPLACE rewrites append-only event history
+  ---
+  duration_ms: 12.657223
+  type: 'test'
+  ...
+# Subtest: lineage: two writers on one file cannot both open an attempt for the same operation
+ok 108 - lineage: two writers on one file cannot both open an attempt for the same operation
+  ---
+  duration_ms: 14.554228
+  type: 'test'
+  ...
+# Subtest: lineage: reader cannot write, even after turning query_only off
+ok 109 - lineage: reader cannot write, even after turning query_only off
+  ---
+  duration_ms: 45.396248
+  type: 'test'
+  ...
+# Subtest: lineage: legacy import is unresolved, blocks settlement, and cannot be promoted
+ok 110 - lineage: legacy import is unresolved, blocks settlement, and cannot be promoted
+  ---
+  duration_ms: 14.237483
+  type: 'test'
+  ...
+# Subtest: lineage: invalid new attempts are refused
+ok 111 - lineage: invalid new attempts are refused
+  ---
+  duration_ms: 18.923341
+  type: 'test'
+  ...
+# Subtest: viewer: forged, JSON-ed, or expired viewers get no grant
+ok 112 - viewer: forged, JSON-ed, or expired viewers get no grant
+  ---
+  duration_ms: 0.920223
+  type: 'test'
+  ...
+# Subtest: viewer: cross-tenant, throwing store, odd invoice ids are refused
+ok 113 - viewer: cross-tenant, throwing store, odd invoice ids are refused
+  ---
+  duration_ms: 0.205668
+  type: 'test'
+  ...
+# Subtest: viewer: readInvoice is never called when unauthorized (composed with projector)
+ok 114 - viewer: readInvoice is never called when unauthorized (composed with projector)
+  ---
+  duration_ms: 0.283076
+  type: 'test'
+  ...
+# Subtest: FIXED (adversarial finding): viewer authorizer fails open when the clock returns NaN (expiry check `expiresAtMs <= NaN` is false)
+ok 115 - FIXED (adversarial finding): viewer authorizer fails open when the clock returns NaN (expiry check `expiresAtMs <= NaN` is false)
+  ---
+  duration_ms: 0.073605
+  type: 'test'
+  ...
+# Subtest: FIXED (adversarial finding): authenticateViewer re-reads authenticator fields after validation (TOCTOU via accessors)
+ok 116 - FIXED (adversarial finding): authenticateViewer re-reads authenticator fields after validation (TOCTOU via accessors)
+  ---
+  duration_ms: 0.081388
+  type: 'test'
+  ...
+# Subtest: readOnlyRpc refuses every write/sign method before reaching the transport
+ok 117 - readOnlyRpc refuses every write/sign method before reaching the transport
+  ---
+  duration_ms: 1.277963
+  type: 'test'
+  ...
+# Subtest: transactionVerifier accepts an honest conversion and payout (sanity) using only read methods
+ok 118 - transactionVerifier accepts an honest conversion and payout (sanity) using only read methods
+  ---
+  duration_ms: 3.063071
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: wrong rpc chain id
+ok 119 - transactionVerifier rejects: wrong rpc chain id
+  ---
+  duration_ms: 0.318488
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: wrong tx chain id
+ok 120 - transactionVerifier rejects: wrong tx chain id
+  ---
+  duration_ms: 0.151693
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: wrong sender
+ok 121 - transactionVerifier rejects: wrong sender
+  ---
+  duration_ms: 0.1149
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: wrong to
+ok 122 - transactionVerifier rejects: wrong to
+  ---
+  duration_ms: 0.146904
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: data digest mismatch
+ok 123 - transactionVerifier rejects: data digest mismatch
+  ---
+  duration_ms: 0.155269
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: missing attribution
+ok 124 - transactionVerifier rejects: missing attribution
+  ---
+  duration_ms: 0.126149
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: wrong attribution code
+ok 125 - transactionVerifier rejects: wrong attribution code
+  ---
+  duration_ms: 0.18246
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: nonzero value
+ok 126 - transactionVerifier rejects: nonzero value
+  ---
+  duration_ms: 0.120896
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: failed status
+ok 127 - transactionVerifier rejects: failed status
+  ---
+  duration_ms: 0.090769
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: receipt for another tx
+ok 128 - transactionVerifier rejects: receipt for another tx
+  ---
+  duration_ms: 0.076046
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: tx/receipt block mismatch
+ok 129 - transactionVerifier rejects: tx/receipt block mismatch
+  ---
+  duration_ms: 0.081625
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: removed log
+ok 130 - transactionVerifier rejects: removed log
+  ---
+  duration_ms: 0.072628
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: log from another tx
+ok 131 - transactionVerifier rejects: log from another tx
+  ---
+  duration_ms: 0.119591
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: log from another block
+ok 132 - transactionVerifier rejects: log from another block
+  ---
+  duration_ms: 0.075247
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: log without index
+ok 133 - transactionVerifier rejects: log without index
+  ---
+  duration_ms: 0.067134
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: duplicate log index
+ok 134 - transactionVerifier rejects: duplicate log index
+  ---
+  duration_ms: 0.379369
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: extra unexpected transfer (payout leaks USDt)
+ok 135 - transactionVerifier rejects: extra unexpected transfer (payout leaks USDt)
+  ---
+  duration_ms: 0.327482
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: payout under output
+ok 136 - transactionVerifier rejects: payout under output
+  ---
+  duration_ms: 0.223038
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: payout over output
+ok 137 - transactionVerifier rejects: payout over output
+  ---
+  duration_ms: 0.28541
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: payout to someone else
+ok 138 - transactionVerifier rejects: payout to someone else
+  ---
+  duration_ms: 0.147548
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: conversion over-cap debit
+ok 139 - transactionVerifier rejects: conversion over-cap debit
+  ---
+  duration_ms: 0.186816
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: conversion zero debit
+ok 140 - transactionVerifier rejects: conversion zero debit
+  ---
+  duration_ms: 0.125119
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: conversion under output
+ok 141 - transactionVerifier rejects: conversion under output
+  ---
+  duration_ms: 0.233726
+  type: 'test'
+  ...
+# Subtest: transactionVerifier rejects: conversion taker sends cNGN out
+ok 142 - transactionVerifier rejects: conversion taker sends cNGN out
+  ---
+  duration_ms: 0.32011
+  type: 'test'
+  ...
+# Subtest: transactionVerifier refuses attempts without recorded lineage or hash, before any RPC
+ok 143 - transactionVerifier refuses attempts without recorded lineage or hash, before any RPC
+  ---
+  duration_ms: 0.329048
+  type: 'test'
+  ...
+# Subtest: FIXED (adversarial finding): transactionVerifier duplicate-log-index check is bypassed by non-canonical index encoding (0x1 vs 0x01)
+ok 144 - FIXED (adversarial finding): transactionVerifier duplicate-log-index check is bypassed by non-canonical index encoding (0x1 vs 0x01)
+  ---
+  duration_ms: 0.177983
+  type: 'test'
+  ...
+# Subtest: canonicalBlockReader: honest block (sanity) and rejection of mismatched height/hash/timestamps
+ok 145 - canonicalBlockReader: honest block (sanity) and rejection of mismatched height/hash/timestamps
+  ---
+  duration_ms: 0.725227
+  type: 'test'
+  ...
+# Subtest: invoiceSnapshotReader rejects tampered digest, revision mismatch and cross-tenant; never writes
+ok 146 - invoiceSnapshotReader rejects tampered digest, revision mismatch and cross-tenant; never writes
+  ---
+  duration_ms: 7.281723
+  type: 'test'
+  ...
+# Subtest: authorizationObserver recovers only the expected signer for the expected audience and purpose
+ok 147 - authorizationObserver recovers only the expected signer for the expected audience and purpose
+  ---
+  duration_ms: 24.986105
+  type: 'test'
+  ...
+# Subtest: viewer access: only server-minted viewers with an explicit, same-tenant permission get a grant
+ok 148 - viewer access: only server-minted viewers with an explicit, same-tenant permission get a grant
+  ---
+  duration_ms: 1.464942
+  type: 'test'
+  ...
+# Subtest: unauthorized and cross-tenant reads never touch invoice data
+ok 149 - unauthorized and cross-tenant reads never touch invoice data
+  ---
+  duration_ms: 0.420941
+  type: 'test'
+  ...
+# Subtest: the RPC guard refuses every write, signing or wallet method
+ok 150 - the RPC guard refuses every write, signing or wallet method
+  ---
+  duration_ms: 0.534147
+  type: 'test'
+  ...
+# Subtest: authorization observer recovers real EIP-712 signers and rejects swapped, foreign or wrong-audience signatures
+ok 151 - authorization observer recovers real EIP-712 signers and rejects swapped, foreign or wrong-audience signatures
+  ---
+  duration_ms: 22.477292
+  type: 'test'
+  ...
+# Subtest: invoice snapshot reader re-derives the commitment and refuses other tenants
+ok 152 - invoice snapshot reader re-derives the commitment and refuses other tenants
+  ---
+  duration_ms: 3.219124
+  type: 'test'
+  ...
+# Subtest: end to end: real adapters, mixed recorded revisions and finalized evidence settle; only read RPC methods are used
+ok 153 - end to end: real adapters, mixed recorded revisions and finalized evidence settle; only read RPC methods are used
+  ---
+  duration_ms: 41.249057
+  type: 'test'
+  ...
+# Subtest: end to end: an authorization that expired after execution is verified-at-execution; one executed after expiry is not
+ok 154 - end to end: an authorization that expired after execution is verified-at-execution; one executed after expiry is not
+  ---
+  duration_ms: 128.879468
+  type: 'test'
+  ...
+# Subtest: end to end: wrong amounts, over-cap debit, non-final blocks, tampered envelopes and missing attribution never settle
+ok 155 - end to end: wrong amounts, over-cap debit, non-final blocks, tampered envelopes and missing attribution never settle
+  ---
+  duration_ms: 236.89821
+  type: 'test'
+  ...
+# Subtest: payout: after verified-final, no second attempt via store or any raw insert form
+ok 156 - payout: after verified-final, no second attempt via store or any raw insert form
+  ---
+  duration_ms: 21.340093
+  type: 'test'
+  ...
+# Subtest: conversion: after verified-final, no second attempt via store or any raw insert form
+ok 157 - conversion: after verified-final, no second attempt via store or any raw insert form
+  ---
+  duration_ms: 11.259316
+  type: 'test'
+  ...
+# Subtest: key dodges: revision/legacy blocked; other operation allowed; case variants are distinct keys (store rejects whitespace)
+ok 158 - key dodges: revision/legacy blocked; other operation allowed; case variants are distinct keys (store rejects whitespace)
+  ---
+  duration_ms: 18.579045
+  type: 'test'
+  ...
+# Subtest: policy (P10.4): a NEW digest for the same invoice cannot pay a finalized payout again
+ok 159 - policy (P10.4): a NEW digest for the same invoice cannot pay a finalized payout again
+  ---
+  duration_ms: 24.400487
+  type: 'test'
+  ...
+# Subtest: reconciled-not-landed cannot be written by any path
+ok 160 - reconciled-not-landed cannot be written by any path
+  ---
+  duration_ms: 21.858731
+  type: 'test'
+  ...
+# Subtest: closure is final: other-column updates on a final row cannot reopen or relabel it
+ok 161 - closure is final: other-column updates on a final row cannot reopen or relabel it
+  ---
+  duration_ms: 64.927013
+  type: 'test'
+  ...
+# Subtest: projector: a forged reconciled-not-landed row (triggers dropped in a scratch copy) still fails closed
+ok 162 - projector: a forged reconciled-not-landed row (triggers dropped in a scratch copy) still fails closed
+  ---
+  duration_ms: 31.472674
+  type: 'test'
+  ...
+# Subtest: verified-final requires hash and a verified-final verification of the same attempt
+ok 163 - verified-final requires hash and a verified-final verification of the same attempt
+  ---
+  duration_ms: 27.661368
+  type: 'test'
+  ...
+# Subtest: FIXED (re-review F1): verification is bound to the recorded hash and only the latest verdict counts
+ok 164 - FIXED (re-review F1): verification is bound to the recorded hash and only the latest verdict counts
+  ---
+  duration_ms: 30.314341
+  type: 'test'
+  ...
+# Subtest: FIXED (re-review observation): a raw writer cannot close verified-final without a verification event
+ok 165 - FIXED (re-review observation): a raw writer cannot close verified-final without a verification event
+  ---
+  duration_ms: 14.65246
+  type: 'test'
+  ...
+# Subtest: claimed-only, outcome-unknown and legacy attempts keep blocking
+ok 166 - claimed-only, outcome-unknown and legacy attempts keep blocking
+  ---
+  duration_ms: 12.445098
+  type: 'test'
+  ...
+# Subtest: a final attempt for tenant A/invoice X does not block B or Y, and foreign rows do not affect selection
+ok 167 - a final attempt for tenant A/invoice X does not block B or Y, and foreign rows do not affect selection
+  ---
+  duration_ms: 16.410105
+  type: 'test'
+  ...
+# Subtest: FIXED (re-review F2): importLegacy no longer silently skips a legacy id that already belongs to ANOTHER tenant/invoice, leaving the legacy dispatch unrecorded
+ok 168 - FIXED (re-review F2): importLegacy no longer silently skips a legacy id that already belongs to ANOTHER tenant/invoice, leaving the legacy dispatch unrecorded
+  ---
+  duration_ms: 42.80198
+  type: 'test'
+  ...
+# Subtest: hash reuse through INSERT OR REPLACE / UPDATE OR REPLACE never deletes rows; history preserved byte-for-byte
+ok 169 - hash reuse through INSERT OR REPLACE / UPDATE OR REPLACE never deletes rows; history preserved byte-for-byte
+  ---
+  duration_ms: 24.909291
+  type: 'test'
+  ...
+# Subtest: concurrent writers: BEGIN IMMEDIATE holder blocks others; never two open rows
+ok 170 - concurrent writers: BEGIN IMMEDIATE holder blocks others; never two open rows
+  ---
+  duration_ms: 14.341721
+  type: 'test'
+  ...
+# Subtest: events are append-only; seq reuse refused; FK enforced only on connections that enable it
+ok 171 - events are append-only; seq reuse refused; FK enforced only on connections that enable it
+  ---
+  duration_ms: 17.07499
+  type: 'test'
+  ...
+# Subtest: a verified-final payout is terminal: a second payout with a fresh id is refused (store and raw SQL)
+ok 172 - a verified-final payout is terminal: a second payout with a fresh id is refused (store and raw SQL)
+  ---
+  duration_ms: 20.363535
+  type: 'test'
+  ...
+# Subtest: a verified-final conversion is terminal: a second conversion with a fresh id is refused (store and raw SQL)
+ok 173 - a verified-final conversion is terminal: a second conversion with a fresh id is refused (store and raw SQL)
+  ---
+  duration_ms: 13.739032
+  type: 'test'
+  ...
+# Subtest: the other operation and other invoices/tenants are unaffected by a final attempt
+ok 174 - the other operation and other invoices/tenants are unaffected by a final attempt
+  ---
+  duration_ms: 13.617484
+  type: 'test'
+  ...
+# Subtest: reconciled-not-landed closure is disabled in the store and in SQLite, for any operator claim
+ok 175 - reconciled-not-landed closure is disabled in the store and in SQLite, for any operator claim
+  ---
+  duration_ms: 12.408988
+  type: 'test'
+  ...
+# Subtest: verified-final closure needs a recorded hash and an independent verified-final verification of that attempt
+ok 176 - verified-final closure needs a recorded hash and an independent verified-final verification of that attempt
+  ---
+  duration_ms: 13.839173
+  type: 'test'
+  ...
+# Subtest: claimed-only and outcome-unknown attempts block every new attempt for the operation
+ok 177 - claimed-only and outcome-unknown attempts block every new attempt for the operation
+  ---
+  duration_ms: 18.59823
+  type: 'test'
+  ...
+# Subtest: INSERT OR REPLACE with a different id cannot displace a row through the operation key or the hash
+ok 178 - INSERT OR REPLACE with a different id cannot displace a row through the operation key or the hash
+  ---
+  duration_ms: 48.277098
+  type: 'test'
+  ...
+# Subtest: event history is immutable, including REPLACE on an existing sequence number
+ok 179 - event history is immutable, including REPLACE on an existing sequence number
+  ---
+  duration_ms: 14.968173
+  type: 'test'
+  ...
+# Subtest: concurrent writers on one file: exactly one attempt per key, before and after finality
+ok 180 - concurrent writers on one file: exactly one attempt per key, before and after finality
+  ---
+  duration_ms: 2033.500032
+  type: 'test'
+  ...
+# Subtest: ADV-5 new digest is refused while open and after final; other tenant / other invoice are unaffected
+ok 181 - ADV-5 new digest is refused while open and after final; other tenant / other invoice are unaffected
+  ---
+  duration_ms: 19.672182
+  type: 'test'
+  ...
+# Subtest: ADV-5 recordVerifiedFinal: non-attested look-alikes and every binding mismatch are refused, no event written
+ok 182 - ADV-5 recordVerifiedFinal: non-attested look-alikes and every binding mismatch are refused, no event written
+  ---
+  duration_ms: 14.501088
+  type: 'test'
+  ...
+# Subtest: ADV-5 appendVerification refuses verified-final (any verifier name); a later negative verdict blocks closure
+ok 183 - ADV-5 appendVerification refuses verified-final (any verifier name); a later negative verdict blocks closure
+  ---
+  duration_ms: 15.620228
+  type: 'test'
+  ...
+# Subtest: ADV-5 OBSERVATION: a raw writer can forge an attested-evidence verdict and close (inside the trust boundary; documented)
+ok 184 - ADV-5 OBSERVATION: a raw writer can forge an attested-evidence verdict and close (inside the trust boundary; documented)
+  ---
+  duration_ms: 18.121957
+  type: 'test'
+  ...
+# Subtest: FIXED (P10.4 adversarial finding): node store close() on an already verified-final attempt succeeds again and appends a second "closed" event
+ok 185 - FIXED (P10.4 adversarial finding): node store close() on an already verified-final attempt succeeds again and appends a second "closed" event
+  ---
+  duration_ms: 23.059444
+  type: 'test'
+  ...
+# Subtest: ADV-6 base URL validation: only https, or http on exact loopback names; userinfo/query/fragment refused; no fetch on misconfig
+ok 186 - ADV-6 base URL validation: only https, or http on exact loopback names; userinfo/query/fragment refused; no fetch on misconfig
+  ---
+  duration_ms: 36.83445
+  type: 'test'
+  ...
+# Subtest: ADV-6 request: redirect:error, no-store, signed path (with encoded ids) verifies at the Worker; invalid id/token never fetched
+ok 187 - ADV-6 request: redirect:error, no-store, signed path (with encoded ids) verifies at the Worker; invalid id/token never fetched
+  ---
+  duration_ms: 3.516142
+  type: 'test'
+  ...
+# Subtest: ADV-6 responses: redirect/network errors, invalid or oversized JSON, extra fields and unknown errors → unavailable; 401 → misconfigured
+ok 188 - ADV-6 responses: redirect/network errors, invalid or oversized JSON, extra fields and unknown errors → unavailable; 401 → misconfigured
+  ---
+  duration_ms: 62.984743
+  type: 'test'
+  ...
+# Subtest: ADV-6 response id mismatch → unavailable; matching projection → invoice; projection never "settled" without a chain reader
+ok 189 - ADV-6 response id mismatch → unavailable; matching projection → invoice; projection never "settled" without a chain reader
+  ---
+  duration_ms: 48.548601
+  type: 'test'
+  ...
+# Subtest: ADV-6 (updated for P10.5) environment gate truth table; the P10.4 demo flags no longer enable anything
+ok 190 - ADV-6 (updated for P10.5) environment gate truth table; the P10.4 demo flags no longer enable anything
+  ---
+  duration_ms: 0.582513
+  type: 'test'
+  ...
+# Subtest: A2: request parsing accepts exactly the two read-only routes
+ok 191 - A2: request parsing accepts exactly the two read-only routes
+  ---
+  duration_ms: 17.486317
+  type: 'test'
+  ...
+# Subtest: A2: responses are validated strictly; extra or missing fields are rejected
+ok 192 - A2: responses are validated strictly; extra or missing fields are rejected
+  ---
+  duration_ms: 0.592623
+  type: 'test'
+  ...
+# Subtest: C1: service signatures verify once, and every tampering, skew, replay or wrong key fails
+ok 193 - C1: service signatures verify once, and every tampering, skew, replay or wrong key fails
+  ---
+  duration_ms: 21.250454
+  type: 'test'
+  ...
+# Subtest: schema module: every statement is idempotent and applies cleanly twice
+ok 194 - schema module: every statement is idempotent and applies cleanly twice
+  ---
+  duration_ms: 1.944289
+  type: 'test'
+  ...
+# Subtest: A7: a finalized payout cannot be attempted again under a new commitment digest
+ok 195 - A7: a finalized payout cannot be attempted again under a new commitment digest
+  ---
+  duration_ms: 15.215263
+  type: 'test'
+  ...
+# Subtest: A7: a finalized conversion cannot be attempted again under a new commitment digest
+ok 196 - A7: a finalized conversion cannot be attempted again under a new commitment digest
+  ---
+  duration_ms: 16.841723
+  type: 'test'
+  ...
+# Subtest: A7: an open attempt under one commitment also blocks the same operation under another
+ok 197 - A7: an open attempt under one commitment also blocks the same operation under another
+  ---
+  duration_ms: 14.151564
+  type: 'test'
+  ...
+# Subtest: C3: a caller-named verifier cannot record verified-final; only attested evidence for this attempt can
+ok 198 - C3: a caller-named verifier cannot record verified-final; only attested evidence for this attempt can
+  ---
+  duration_ms: 14.161563
+  type: 'test'
+  ...
+# Subtest: service accepts skew boundaries and refuses one millisecond past either edge
+ok 199 - service accepts skew boundaries and refuses one millisecond past either edge
+  ---
+  duration_ms: 18.490572
+  type: 'test'
+  ...
+# Subtest: key rotation overlap is explicit and relabelling a signed request cannot change its key
+ok 200 - key rotation overlap is explicit and relabelling a signed request cannot change its key
+  ---
+  duration_ms: 3.238348
+  type: 'test'
+  ...
+# Subtest: an invalid HMAC does not spend the replay nonce and an exact replay is rejected
+ok 201 - an invalid HMAC does not spend the replay nonce and an exact replay is rejected
+  ---
+  duration_ms: 1.870537
+  type: 'test'
+  ...
+# Subtest: Celo reader rejects invalid JSON
+ok 202 - Celo reader rejects invalid JSON
+  ---
+  duration_ms: 2.653616
+  type: 'test'
+  ...
+# Subtest: Celo reader rejects batch envelope
+ok 203 - Celo reader rejects batch envelope
+  ---
+  duration_ms: 0.369204
+  type: 'test'
+  ...
+# Subtest: Celo reader rejects mismatched ID with valid result
+ok 204 - Celo reader rejects mismatched ID with valid result
+  ---
+  duration_ms: 0.402731
+  type: 'test'
+  ...
+# Subtest: C1: the transport refuses non-read methods before any network I/O, and validates its configuration
+ok 205 - C1: the transport refuses non-read methods before any network I/O, and validates its configuration
+  ---
+  duration_ms: 2.015577
+  type: 'test'
+  ...
+# Subtest: C2: canonical, finalized, exact-output and max-debit evidence verifies through the real transport
+ok 206 - C2: canonical, finalized, exact-output and max-debit evidence verifies through the real transport
+  ---
+  duration_ms: 66.803142
+  type: 'test'
+  ...
+# Subtest: C3: notFinal never verifies
+ok 207 - C3: notFinal never verifies
+  ---
+  duration_ms: 20.248852
+  type: 'test'
+  ...
+# Subtest: C3: wrongTransaction never verifies
+ok 208 - C3: wrongTransaction never verifies
+  ---
+  duration_ms: 23.065262
+  type: 'test'
+  ...
+# Subtest: C3: wrongToken never verifies
+ok 209 - C3: wrongToken never verifies
+  ---
+  duration_ms: 12.976138
+  type: 'test'
+  ...
+# Subtest: C3: wrongRecipient never verifies
+ok 210 - C3: wrongRecipient never verifies
+  ---
+  duration_ms: 14.388069
+  type: 'test'
+  ...
+# Subtest: C3: shortOutput never verifies
+ok 211 - C3: shortOutput never verifies
+  ---
+  duration_ms: 10.328201
+  type: 'test'
+  ...
+# Subtest: C3: overCap never verifies
+ok 212 - C3: overCap never verifies
+  ---
+  duration_ms: 9.366185
+  type: 'test'
+  ...
+# Subtest: C3: failedTx never verifies
+ok 213 - C3: failedTx never verifies
+  ---
+  duration_ms: 8.546694
+  type: 'test'
+  ...
+# Subtest: C3: wrongChain never verifies
+ok 214 - C3: wrongChain never verifies
+  ---
+  duration_ms: 3.451964
+  type: 'test'
+  ...
+# Subtest: C3: rpcError never verifies
+ok 215 - C3: rpcError never verifies
+  ---
+  duration_ms: 3.105802
+  type: 'test'
+  ...
+# Subtest: C3: idMismatch never verifies
+ok 216 - C3: idMismatch never verifies
+  ---
+  duration_ms: 2.876421
+  type: 'test'
+  ...
+# Subtest: C3: oversized never verifies
+ok 217 - C3: oversized never verifies
+  ---
+  duration_ms: 30.382846
+  type: 'test'
+  ...
+# Subtest: C3: a reorg between the receipt and the canonical read is detected (reconciliation required)
+ok 218 - C3: a reorg between the receipt and the canonical read is detected (reconciliation required)
+  ---
+  duration_ms: 12.364414
+  type: 'test'
+  ...
+# Subtest: C1: a slow endpoint times out and yields unknown, never verified
+ok 219 - C1: a slow endpoint times out and yields unknown, never verified
+  ---
+  duration_ms: 103.184456
+  type: 'test'
+  ...
+# Subtest: C1: errors never include the endpoint URL (which may carry a provider key)
+ok 220 - C1: errors never include the endpoint URL (which may carry a provider key)
+  ---
+  duration_ms: 3.685735
+  type: 'test'
+  ...
+# Subtest: L1: the claim is persisted before dispatch; dispatch sees the attempt and its nonce reservation on disk
+ok 221 - L1: the claim is persisted before dispatch; dispatch sees the attempt and its nonce reservation on disk
+  ---
+  duration_ms: 253.665832
+  type: 'test'
+  ...
+# Subtest: L1: a crash afterClaim leaves a retained, blocking attempt and no retry
+ok 222 - L1: a crash afterClaim leaves a retained, blocking attempt and no retry
+  ---
+  duration_ms: 15.031821
+  type: 'test'
+  ...
+# Subtest: L1: a crash afterDispatch leaves a retained, blocking attempt and no retry
+ok 223 - L1: a crash afterDispatch leaves a retained, blocking attempt and no retry
+  ---
+  duration_ms: 12.790796
+  type: 'test'
+  ...
+# Subtest: L2: concurrent claims for the same invoice operation produce exactly one dispatch
+ok 224 - L2: concurrent claims for the same invoice operation produce exactly one dispatch
+  ---
+  duration_ms: 16.798817
+  type: 'test'
+  ...
+# Subtest: L3: a taker nonce reserved by one invoice cannot be reused by another invoice or tenant; nothing is written
+ok 225 - L3: a taker nonce reserved by one invoice cannot be reused by another invoice or tenant; nothing is written
+  ---
+  duration_ms: 12.986837
+  type: 'test'
+  ...
+# Subtest: L4: an unknown outcome (no hash, or a dispatch failure) is recorded and never retried
+ok 226 - L4: an unknown outcome (no hash, or a dispatch failure) is recorded and never retried
+  ---
+  duration_ms: 25.134732
+  type: 'test'
+  ...
+# Subtest: L4: after a finalized payout no further payout can be claimed, under any nonce or commitment
+ok 227 - L4: after a finalized payout no further payout can be claimed, under any nonce or commitment
+  ---
+  duration_ms: 16.271696
+  type: 'test'
+  ...
+# Subtest: guards: only a simulated dispatcher is accepted; mismatched transactions and failing preflight are refused before any write
+ok 228 - guards: only a simulated dispatcher is accepted; mismatched transactions and failing preflight are refused before any write
+  ---
+  duration_ms: 16.444814
+  type: 'test'
+  ...
+# Subtest: preview binds the exact corridor and target with no signing, taker or transaction fields
+ok 229 - preview binds the exact corridor and target with no signing, taker or transaction fields
+  ---
+  duration_ms: 1.473771
+  type: 'test'
+  ...
+# Subtest: over-cap all-in debit
+ok 230 - over-cap all-in debit
+  ---
+  duration_ms: 0.154546
+  type: 'test'
+  ...
+# Subtest: wrong cNGN output
+ok 231 - wrong cNGN output
+  ---
+  duration_ms: 0.130513
+  type: 'test'
+  ...
+# Subtest: fee greater than debit
+ok 232 - fee greater than debit
+  ---
+  duration_ms: 0.080739
+  type: 'test'
+  ...
+# Subtest: firm quote payload
+ok 233 - firm quote payload
+  ---
+  duration_ms: 0.134115
+  type: 'test'
+  ...
+# Subtest: no maker liquidity
+ok 234 - no maker liquidity
+  ---
+  duration_ms: 0.073609
+  type: 'test'
+  ...
+# Subtest: an expired commitment never calls preview and delayed responses are discarded
+ok 235 - an expired commitment never calls preview and delayed responses are discarded
+  ---
+  duration_ms: 0.333413
+  type: 'test'
+  ...
+# Subtest: preview transport is pinned to the credentialless non-reserving endpoint
+ok 236 - preview transport is pinned to the credentialless non-reserving endpoint
+  ---
+  duration_ms: 15.480002
+  type: 'test'
+  ...
+# Subtest: preview transport fails closed on oversized responses
+ok 237 - preview transport fails closed on oversized responses
+  ---
+  duration_ms: 0.612663
+  type: 'test'
+  ...
+# Subtest: simulated payout cannot become settled evidence, including a matching example
+ok 238 - simulated payout cannot become settled evidence, including a matching example
+  ---
+  duration_ms: 0.347311
+  type: 'test'
+  ...
+# Subtest: uses the lowest agreed canonical finalized head across different provider heights
+ok 239 - uses the lowest agreed canonical finalized head across different provider heights
+  ---
+  duration_ms: 6.729852
+  type: 'test'
+  ...
+# Subtest: rejects missing receipt, timeout, conflicting logs, wrong chain and canonical reorg independently
+ok 240 - rejects missing receipt, timeout, conflicting logs, wrong chain and canonical reorg independently
+  ---
+  duration_ms: 0.712461
+  type: 'test'
+  ...
+# Subtest: hosted provider is explicitly unconfigured and assertion outages remain unavailable
+ok 241 - hosted provider is explicitly unconfigured and assertion outages remain unavailable
+  ---
+  duration_ms: 1.860183
+  type: 'test'
+  ...
+# Subtest: issuer, audience, expiration, recent MFA and tenant operator grant must match separately
+ok 242 - issuer, audience, expiration, recent MFA and tenant operator grant must match separately
+  ---
+  duration_ms: 0.320176
+  type: 'test'
+  ...
+# Subtest: firm fixture interface binds exact output and prepares conversion and separate payout evidence
+ok 243 - firm fixture interface binds exact output and prepares conversion and separate payout evidence
+  ---
+  duration_ms: 29.992439
+  type: 'test'
+  ...
+# Subtest: rejects incorrect fee accounting, envelope, balance, allowance cap, stale quote and stale simulation
+ok 244 - rejects incorrect fee accounting, envelope, balance, allowance cap, stale quote and stale simulation
+  ---
+  duration_ms: 13.295553
+  type: 'test'
+  ...
+# Subtest: public Vercel profile overrides private and preview enable flags
+ok 245 - public Vercel profile overrides private and preview enable flags
+  ---
+  duration_ms: 0.533623
+  type: 'test'
+  ...
+# Subtest: public registration requires independent canonical, finalized mint evidence
+ok 246 - public registration requires independent canonical, finalized mint evidence
+  ---
+  duration_ms: 1.741794
+  type: 'test'
+  ...
+# Subtest: quote and payout conclusions stay separate from authorization and unknown attempts
+ok 247 - quote and payout conclusions stay separate from authorization and unknown attempts
+  ---
+  duration_ms: 0.580558
+  type: 'test'
+  ...
+# Subtest: signed approval and separately signed consent bind invoice digest, role, audience and expiry
+ok 248 - signed approval and separately signed consent bind invoice digest, role, audience and expiry
+  ---
+  duration_ms: 45.063558
+  type: 'test'
+  ...
+# Subtest: trusted RPC accepts only a canonical finalized receipt with exact call and ERC-20 movements
+ok 249 - trusted RPC accepts only a canonical finalized receipt with exact call and ERC-20 movements
+  ---
+  duration_ms: 2.936875
+  type: 'test'
+  ...
+# Subtest: RPC simulation enforces gas, total fee and network before handoff
+ok 250 - RPC simulation enforces gas, total fee and network before handoff
+  ---
+  duration_ms: 1.545078
+  type: 'test'
+  ...
+# Subtest: authenticated loopback wallet boundary refuses wrong origin, token, replay and changed account
+ok 251 - authenticated loopback wallet boundary refuses wrong origin, token, replay and changed account
+  ---
+  duration_ms: 17.656446
+  type: 'test'
+  ...
+# Subtest: Celo fee estimation uses the verified oracle and propagates unavailable or unsupported fee data
+ok 252 - Celo fee estimation uses the verified oracle and propagates unavailable or unsupported fee data
+  ---
+  duration_ms: 6.753773
+  type: 'test'
+  ...
+# Subtest: real RFQ shape binds exact-out taker to selected sender
+ok 253 - real RFQ shape binds exact-out taker to selected sender
+  ---
+  duration_ms: 16.199464
+  type: 'test'
+  ...
+# Subtest: provider rejects sender before send
+ok 254 - provider rejects sender before send
+  ---
+  duration_ms: 8.57185
+  type: 'test'
+  ...
+# Subtest: provider rejects chain before send
+ok 255 - provider rejects chain before send
+  ---
+  duration_ms: 6.868874
+  type: 'test'
+  ...
+# Subtest: provider rejects accountsChanged before send
+ok 256 - provider rejects accountsChanged before send
+  ---
+  duration_ms: 6.577598
+  type: 'test'
+  ...
+# Subtest: provider rejects chainChanged before send
+ok 257 - provider rejects chainChanged before send
+  ---
+  duration_ms: 6.885217
+  type: 'test'
+  ...
+# Subtest: provider rejects disconnect before send
+ok 258 - provider rejects disconnect before send
+  ---
+  duration_ms: 10.333964
+  type: 'test'
+  ...
+# Subtest: provider rejects smart account before send
+ok 259 - provider rejects smart account before send
+  ---
+  duration_ms: 8.79065
+  type: 'test'
+  ...
+# Subtest: Textile response rejects taker
+ok 260 - Textile response rejects taker
+  ---
+  duration_ms: 9.542695
+  type: 'test'
+  ...
+# Subtest: Textile response rejects spender
+ok 261 - Textile response rejects spender
+  ---
+  duration_ms: 8.627512
+  type: 'test'
+  ...
+# Subtest: Textile response rejects output
+ok 262 - Textile response rejects output
+  ---
+  duration_ms: 8.626579
+  type: 'test'
+  ...
+# Subtest: Textile response rejects cap
+ok 263 - Textile response rejects cap
+  ---
+  duration_ms: 10.556076
+  type: 'test'
+  ...
+# Subtest: Textile response rejects target
+ok 264 - Textile response rejects target
+  ---
+  duration_ms: 7.798123
+  type: 'test'
+  ...
+# Subtest: Textile response rejects chain
+ok 265 - Textile response rejects chain
+  ---
+  duration_ms: 7.514522
+  type: 'test'
+  ...
+# Subtest: Textile response rejects approval bytes
+ok 266 - Textile response rejects approval bytes
+  ---
+  duration_ms: 6.246822
+  type: 'test'
+  ...
+# Subtest: Textile response rejects hidden debit
+ok 267 - Textile response rejects hidden debit
+  ---
+  duration_ms: 8.795016
+  type: 'test'
+  ...
+# Subtest: Textile response rejects deadline
+ok 268 - Textile response rejects deadline
+  ---
+  duration_ms: 7.597798
+  type: 'test'
+  ...
+# Subtest: Textile response rejects double suffix
+ok 269 - Textile response rejects double suffix
+  ---
+  duration_ms: 7.451692
+  type: 'test'
+  ...
+# Subtest: pre-quote approval enforces cap and encodes exact spender, sender and tag
+ok 270 - pre-quote approval enforces cap and encodes exact spender, sender and tag
+  ---
+  duration_ms: 11.194238
+  type: 'test'
+  ...
+# Subtest: ERC-8004 registration uses direct wallet and one tagged register call
+ok 271 - ERC-8004 registration uses direct wallet and one tagged register call
+  ---
+  duration_ms: 8.503983
+  type: 'test'
+  ...
+# Subtest: swap requires matching simulation and freshly valid quote before handoff
+ok 272 - swap requires matching simulation and freshly valid quote before handoff
+  ---
+  duration_ms: 14.172397
+  type: 'test'
+  ...
+# Subtest: wallet rejection journals the attempt and blocks automatic replay
+ok 273 - wallet rejection journals the attempt and blocks automatic replay
+  ---
+  duration_ms: 13.823162
+  type: 'test'
+  ...
+# Subtest: ambiguous swap requires late independent exact receipt, then sends one exact payout
+ok 274 - ambiguous swap requires late independent exact receipt, then sends one exact payout
+  ---
+  duration_ms: 26.156644
+  type: 'test'
+  ...
+# Subtest: signed filler mismatch rejects even when quote metadata names the pinned taker
+ok 275 - signed filler mismatch rejects even when quote metadata names the pinned taker
+  ---
+  duration_ms: 6.860512
+  type: 'test'
+  ...
+# Subtest: account changes during an asynchronous wallet check invalidate the session
+ok 276 - account changes during an asynchronous wallet check invalidate the session
+  ---
+  duration_ms: 7.575472
+  type: 'test'
+  ...
+# Subtest: wallet timeout without a hash blocks settlement and resend after restart
+ok 277 - wallet timeout without a hash blocks settlement and resend after restart
+  ---
+  duration_ms: 45.255698
+  type: 'test'
+  ...
+# Subtest: a caller-supplied receipt object cannot promote an invoice
+ok 278 - a caller-supplied receipt object cannot promote an invoice
+  ---
+  duration_ms: 22.903719
+  type: 'test'
+  ...
+# Subtest: a valid mock quote with only 19 seconds remaining never opens a wallet prompt
+ok 279 - a valid mock quote with only 19 seconds remaining never opens a wallet prompt
+  ---
+  duration_ms: 14.963883
+  type: 'test'
+  ...
+1..279
+# tests 279
+# suites 0
+# pass 279
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6191.554215

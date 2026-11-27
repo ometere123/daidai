@@ -1,0 +1,12 @@
+[
+  {
+    "antipattern": "side-tab",
+    "name": "Side-tab accent border",
+    "description": "A bar down one side of a rounded box. Use a full border, a background tint, or a leading icon or label instead.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "/tmp/clean/apps/web/app/daidai.css",
+    "line": 226,
+    "snippet": ".row.selected — inset box-shadow 3px stripe on a row or cell (left edge)"
+  }
+]

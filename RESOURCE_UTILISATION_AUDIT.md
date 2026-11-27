@@ -1,0 +1,35 @@
+# Resource utilisation audit
+
+All nine resources were re-cloned from their official repositories at the commits below, inspected, and applied to the real product rendered in Chromium. "Installed" is not counted as "used": each row records what was actually executed or applied and what it produced. Where a resource could not be applied as designed, the limitation is stated.
+
+Evidence is in `docs/audit/evidence/` and `docs/audit/screenshots/`.
+
+| # | Resource (repository, commit) | Documentation investigated | Activation | Audit procedure actually performed | Verdict contribution |
+| --- | --- | --- | --- | --- | --- |
+| 1 | frontend-design — `anthropics/skills` `e4bb5d9` | Full `skills/frontend-design/SKILL.md` (71 lines) | Read-only guidance; nothing to install | Checked the product against its list of default "generated page" tells and its type, structure and copy rules, on rendered pages | Findings D-02, D-05, D-06 |
+| 2 | webapp-testing — `anthropics/skills` `e4bb5d9` | `skills/webapp-testing/SKILL.md`, `scripts/with_server.py` | Pattern applied; its Python helper was **not** run | Reconnaissance-then-action with Playwright: start the real servers, render, inspect DOM and console, screenshot at three sizes. Implemented with the Node Playwright API already in the repo rather than the skill's Python scripts | The browser evidence in `TEST_RESULTS.md` |
+| 3 | UI UX Pro Max — `nextlevelbuilder/ui-ux-pro-max-skill` `11ca2b3` | `SKILL.md`, `scripts/design_system.py --help`, data files | Ran `design_system.py` directly | Generated a design-system recommendation for "fintech B2B invoice stablecoin settlement trust" and compared it with the shipped Ink and Brass system | Calibration point for D-01; accessibility checklist for D-09 |
+| 4 | Taste Skill — `Leonxlnx/taste-skill` `952435f` | `SKILL.md` (381 lines), scripts directory | Ran `scripts/copy-lint.mjs` on saved home and proof HTML | Copy lint on two rendered pages; applied its "real product UI in the hero" rule by inspection. `gate.mjs` and `consistency.mjs` were **not** run: they require an armed marketing-site build flow that does not fit an existing product | D-02, D-06 |
+| 5 | Impeccable — `pbakaus/impeccable` `2fc5e14` | `README.md`, CLI usage, rule list (62 deterministic rules) | Ran `npx impeccable@4.11.1 detect` after confirming the package declares no install-time scripts | Detector over `apps/web/app` source (1 finding) and over four rendered URLs (`/demo`: 4 findings; `/`, `/agent`, `/proof`: 0) | D-07, D-08 |
+| 6 | Emil Kowalski skills — `emilkowalski/skills` `64eb3de` | `review-animations/SKILL.md` ten standards and `STANDARDS.md` | Standards applied by hand to every animation in `daidai.css`; the skill itself is host-bound | Inventoried all keyframes, transitions and the reduced-motion block against the ten standards; ran a reduced-motion render | M-01 to M-04 in `DESIGN_AUDIT.md` |
+| 7 | Interface Design — `Dammyjay93/interface-design` `2f9be32` | `SKILL.md` principles and its four pre-show checks | Checks applied by hand; no `.interface-design/system.md` exists in the repository | Ran the swap, squint, signature and token tests and the one-focal-point rule over `/`, `/proof`, `/demo` and the private pages | D-03, D-04 |
+| 8 | Vercel agent skills — `vercel-labs/agent-skills` `5a37a63` | `skills/web-design-guidelines/references/command.md` (rule catalogue) | Rules checked directly against `apps/web` source | Mechanical greps and renders for skip link, aria-live, placeholders, focus replacement, text-wrap, not-found/error pages and share metadata | D-09, D-10, D-11 |
+| 9 | shadcn/ui — `shadcn-ui/ui` `0e5b2e6` | `skills/shadcn/SKILL.md` principles | Not applicable to install: the app does not use shadcn | Confirmed no `components.json`; the app uses Radix Dialog plus 41 KB of handwritten CSS; Tailwind is imported but barely used (4 utility-style class strings) | D-12 |
+
+## Findings produced per resource
+
+1. **frontend-design.** The hero has a small mono eyebrow above the headline (`Celo Mainnet · USDt → cNGN`), middle-dot meta strings, arrow glyphs on links and a near-black slab with a single warm accent. Each is on the skill's list of generated-page defaults. The private product pages are the "SaaS-card kit": identical rounded bordered cards with one radius and no hierarchy. Counter-evidence worth stating: the typeface (Schibsted Grotesk with JetBrains Mono) and the ink and brass palette are deliberate and not on its list, and the palette is not the cream-and-terracotta default.
+2. **webapp-testing.** The method found the dead public navigation, which source reading never would have.
+3. **UI UX Pro Max.** Its generated recommendation for this brief is generic navy, trust blue and IBM Plex Sans with a "security badges" conversion pattern. Daidai's Ink and Brass system with a spec-mandated violet only for demo content is more distinctive than that baseline. The tool's accessibility requirements (keyboard, visible focus, reduced motion, 4.5:1 contrast) are met except for the landmark issues in D-09.
+4. **Taste.** Copy lint reports 0 failures and 0 warnings on `/` and `/proof` (info only: one two-fragment heading, one list of three). The copy is plain and not hyped. Its rule that a company page should show real product UI fails: the landing page contains no picture of the product at all.
+5. **Impeccable.** `/` , `/agent` and `/proof` are clean. `/demo` reports a side-tab accent (`daidai.css:226`, 3 px inset stripe on the selected row) and three undersized UI text runs. The side-tab is a documented slop pattern; whether the design brief intends it is checked in `DESIGN_AUDIT.md` D-07.
+6. **Emil Kowalski.** Strong overall (no `transition: all`, custom ease-out curves, all UI motion at or under 250 ms apart from the single 400 ms authored verdict moment, a reduced-motion block). Three deviations are recorded in `DESIGN_AUDIT.md` M-02 to M-04.
+7. **Interface Design.** Signature test: five specific signature elements exist on `/demo` (plumb diamond, ink slab, brass plumb mark, status glyph set, the Plumb Line gauge) but only one (the nav diamond) on the private pages. One-focal-point rule fails on `/proof`, `/invoices` and `/pay`.
+8. **Vercel guidelines.** Pass: skip link, `aria-live` regions, visible `:focus-visible` outline, no `transition: all`. Fail: zero placeholders with example patterns, no custom not-found or error page, no robots, sitemap or share image.
+9. **shadcn/ui.** Not adopted, which is a legitimate choice here. The risk is the opposite one: the private pages look like unstyled library defaults even though no library is used.
+
+## Limitations stated honestly
+
+- The skill-style resources are written for a coding assistant host. They were applied as checklists and tools rather than as installed host plugins.
+- `taste-skill` gate and consistency scripts and `webapp-testing/with_server.py` were not executed, for the reasons in the table.
+- Impeccable's in-host commands were not available; only its deterministic detector was run.

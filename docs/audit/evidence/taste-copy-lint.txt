@@ -1,0 +1,10 @@
+--- home
+
+== home.html  (111 words)  0 FAIL, 0 WARN
+  INFO copy-two-fragment    two-fragment headings "X. Y.": 1 of 1
+       - Invoice in cNGN. Fund it in USDt.
+--- proof
+
+== proof.html  (60 words)  0 FAIL, 0 WARN
+  INFO copy-triads          1 list of three (about one in 60 words)
+       - Invoice, conversion and payout

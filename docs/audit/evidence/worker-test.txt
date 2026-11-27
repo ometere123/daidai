@@ -1,0 +1,1169 @@
+
+> test
+> npm run build && node --disable-warning=ExperimentalWarning --experimental-strip-types --test --test-concurrency=1 test/*.test.ts
+
+
+> build
+> node scripts/build.mjs
+
+TAP version 13
+# Subtest: ADV-1 Worker HTTP boundary
+    # Subtest: percent-encoded alias: signature binds the RAW path; a signature for inv-a1 does not authorize inv%2Da1 and vice versa
+    ok 1 - percent-encoded alias: signature binds the RAW path; a signature for inv-a1 does not authorize inv%2Da1 and vice versa
+      ---
+      duration_ms: 83.324864
+      type: 'test'
+      ...
+    # Subtest: dot segments are normalized before signing on both sides; a signature over the un-normalized path fails closed
+    ok 2 - dot segments are normalized before signing on both sides; a signature over the un-normalized path fails closed
+      ---
+      duration_ms: 3.980594
+      type: 'test'
+      ...
+    # Subtest: newline / CR / NUL injection in the path cannot reach the canonical string (decoded id is rejected → 400)
+    ok 3 - newline / CR / NUL injection in the path cannot reach the canonical string (decoded id is rejected → 400)
+      ---
+      duration_ms: 14.625328
+      type: 'test'
+      ...
+    # Subtest: canonical string: a path carrying the separator cannot collide with a different (path, timestamp, nonce) split
+    ok 4 - canonical string: a path carrying the separator cannot collide with a different (path, timestamp, nonce) split
+      ---
+      duration_ms: 1.901201
+      type: 'test'
+      ...
+    # Subtest: duplicated auth headers are joined by Headers (", ") and fail format checks → 401
+    ok 5 - duplicated auth headers are joined by Headers (", ") and fail format checks → 401
+      ---
+      duration_ms: 22.260397
+      type: 'test'
+      ...
+    # Subtest: header name case does not matter; uppercase names verify identically
+    ok 6 - header name case does not matter; uppercase names verify identically
+      ---
+      duration_ms: 9.108638
+      type: 'test'
+      ...
+    # Subtest: oversized viewer header: valid service auth, malformed token → uniform 404; huge header never yields data or CORS
+    ok 7 - oversized viewer header: valid service auth, malformed token → uniform 404; huge header never yields data or CORS
+      ---
+      duration_ms: 9.58148
+      type: 'test'
+      ...
+    # Subtest: key id prototype names: constructor/toString/hasOwnProperty are unknown → 401; a configured "__proto__" key is an own key
+    ok 8 - key id prototype names: constructor/toString/hasOwnProperty are unknown → 401; a configured "__proto__" key is an own key
+      ---
+      duration_ms: 19.191926
+      type: 'test'
+      ...
+    # Subtest: timestamp formats: seconds, decimals, signs, padding, exponent and hex are refused → 401
+    ok 9 - timestamp formats: seconds, decimals, signs, padding, exponent and hex are refused → 401
+      ---
+      duration_ms: 26.955137
+      type: 'test'
+      ...
+    # Subtest: replay of the same request under a different key id fails (signature is per key)
+    ok 10 - replay of the same request under a different key id fails (signature is per key)
+      ---
+      duration_ms: 540.382667
+      type: 'test'
+      ...
+    # Subtest: nonce reuse after the window: the signature is stale by then, so a late replay is still refused by the skew check
+    ok 11 - nonce reuse after the window: the signature is stale by then, so a late replay is still refused by the skew check
+      ---
+      duration_ms: 2.817455
+      type: 'test'
+      ...
+    # Subtest: OBSERVATION: NonceWindow evicts the oldest entries once over `max`, so a nonce can be replayed inside the skew window after max+1 claims (per isolate)
+    ok 12 - OBSERVATION: NonceWindow evicts the oldest entries once over `max`, so a nonce can be replayed inside the skew window after max+1 claims (per isolate)
+      ---
+      duration_ms: 0.228401
+      type: 'test'
+      ...
+    # Subtest: rate limit: per key id, applied only after authentication; unauthenticated floods do not drain the bucket
+    ok 13 - rate limit: per key id, applied only after authentication; unauthenticated floods do not drain the bucket
+      ---
+      duration_ms: 44.304907
+      type: 'test'
+      ...
+    # Subtest: HEAD / TRACE / OPTIONS / CONNECT-like methods are refused with 405 and no body data
+    ok 14 - HEAD / TRACE / OPTIONS / CONNECT-like methods are refused with 405 and no body data
+      ---
+      duration_ms: 25.498738
+      type: 'test'
+      ...
+    # Subtest: Origin (any value, including "null") → 401; OBSERVATION: Referer / Sec-Fetch-* alone are not rejected (only a signed request gets through)
+    ok 15 - Origin (any value, including "null") → 401; OBSERVATION: Referer / Sec-Fetch-* alone are not rejected (only a signed request gets through)
+      ---
+      duration_ms: 27.462167
+      type: 'test'
+      ...
+    # Subtest: every denial is byte-identical (status, headers, body): unknown invoice, forbidden, cross-tenant, expired session, malformed token
+    ok 16 - every denial is byte-identical (status, headers, body): unknown invoice, forbidden, cross-tenant, expired session, malformed token
+      ---
+      duration_ms: 46.622957
+      type: 'test'
+      ...
+    1..16
+ok 1 - ADV-1 Worker HTTP boundary
+  ---
+  duration_ms: 2186.803295
+  type: 'suite'
+  ...
+# Subtest: ADV-2 viewer, session and permission
+    # Subtest: session expiry boundary: expires == now is denied, now+1 allowed; authenticated_at in the future denied; no data query on denial
+    ok 1 - session expiry boundary: expires == now is denied, now+1 allowed; authenticated_at in the future denied; no data query on denial
+      ---
+      duration_ms: 298.385658
+      type: 'test'
+      ...
+    # Subtest: non-integer timestamps and malformed viewer/tenant ids in a session row are denied (numeric text is coerced by INTEGER affinity)
+    ok 2 - non-integer timestamps and malformed viewer/tenant ids in a session row are denied (numeric text is coerced by INTEGER affinity)
+      ---
+      duration_ms: 259.186549
+      type: 'test'
+      ...
+    # Subtest: token hash: uppercase-hex stored hash never matches; a token differing only in case is a different session
+    ok 3 - token hash: uppercase-hex stored hash never matches; a token differing only in case is a different session
+      ---
+      duration_ms: 34.737333
+      type: 'test'
+      ...
+    # Subtest: tenant mismatch between session, permission and tenant_directory is always denied before any invoice read
+    ok 4 - tenant mismatch between session, permission and tenant_directory is always denied before any invoice read
+      ---
+      duration_ms: 87.142954
+      type: 'test'
+      ...
+    # Subtest: permission rows with other values cannot be stored (CHECK), so they cannot grant
+    ok 5 - permission rows with other values cannot be stored (CHECK), so they cannot grant
+      ---
+      duration_ms: 55.013418
+      type: 'test'
+      ...
+    # Subtest: SQL injection through invoice ids is refused by validation (400) and is inert at the repository (bound params)
+    ok 6 - SQL injection through invoice ids is refused by validation (400) and is inert at the repository (bound params)
+      ---
+      duration_ms: 35.468374
+      type: 'test'
+      ...
+    # Subtest: read path issues only SELECT statements, never a batch, across allowed and denied requests
+    ok 7 - read path issues only SELECT statements, never a batch, across allowed and denied requests
+      ---
+      duration_ms: 349.855387
+      type: 'test'
+      ...
+    # Subtest: Worker source: no write statements, no chain reader construction, no request-derived chain config
+    ok 8 - Worker source: no write statements, no chain reader construction, no request-derived chain config
+      ---
+      duration_ms: 2.303896
+      type: 'test'
+      ...
+    1..8
+ok 2 - ADV-2 viewer, session and permission
+  ---
+  duration_ms: 1122.682556
+  type: 'suite'
+  ...
+# Subtest: ADV-3 projection integrity
+    # Subtest: tampered invoice body with the stored digest → uniform 404 (commitment re-derived)
+    ok 1 - tampered invoice body with the stored digest → uniform 404 (commitment re-derived)
+      ---
+      duration_ms: 16.26747
+      type: 'test'
+      ...
+    # Subtest: revision: negative refused by CHECK; non-integer (REAL) revision fails closed → 404
+    ok 2 - revision: negative refused by CHECK; non-integer (REAL) revision fails closed → 404
+      ---
+      duration_ms: 20.524573
+      type: 'test'
+      ...
+    # Subtest: swapped approval/consent signatures → neither verifies; never settled
+    ok 3 - swapped approval/consent signatures → neither verifies; never settled
+      ---
+      duration_ms: 28.239709
+      type: 'test'
+      ...
+    # Subtest: signatures from another tenant or another digest are never used
+    ok 4 - signatures from another tenant or another digest are never used
+      ---
+      duration_ms: 28.102821
+      type: 'test'
+      ...
+    # Subtest: raw-SQL forged verified-final closure (inside the trust boundary) still never settles without a chain reader
+    ok 5 - raw-SQL forged verified-final closure (inside the trust boundary) still never settles without a chain reader
+      ---
+      duration_ms: 59.130144
+      type: 'test'
+      ...
+    # Subtest: attempts for another tenant with the same invoice id and digest do not leak into the projection
+    ok 6 - attempts for another tenant with the same invoice id and digest do not leak into the projection
+      ---
+      duration_ms: 29.303076
+      type: 'test'
+      ...
+    # Subtest: malformed attempt JSON (raw insert) fails closed: payout reconciliation-required/unavailable, never settled
+    ok 7 - malformed attempt JSON (raw insert) fails closed: payout reconciliation-required/unavailable, never settled
+      ---
+      duration_ms: 27.201016
+      type: 'test'
+      ...
+    # Subtest: OBSERVATION: re-committing an invoice row to a new digest hides earlier-digest attempts from the projection (writer still blocks a new attempt)
+    ok 8 - OBSERVATION: re-committing an invoice row to a new digest hides earlier-digest attempts from the projection (writer still blocks a new attempt)
+      ---
+      duration_ms: 53.946941
+      type: 'test'
+      ...
+    1..8
+ok 3 - ADV-3 projection integrity
+  ---
+  duration_ms: 263.319489
+  type: 'suite'
+  ...
+# Subtest: ADV-4 D1 lineage writer under adversarial sequences
+    # Subtest: concurrent recordHash with different hashes: exactly one wins, one hash-recorded event, loser gets the set-once error
+    ok 1 - concurrent recordHash with different hashes: exactly one wins, one hash-recorded event, loser gets the set-once error
+      ---
+      duration_ms: 132.408672
+      type: 'test'
+      ...
+    # Subtest: race: close vs a newer negative verdict — closed state and the closed event are always consistent
+    ok 2 - race: close vs a newer negative verdict — closed state and the closed event are always consistent
+      ---
+      duration_ms: 656.559182
+      type: 'test'
+      ...
+    # Subtest: concurrent recordVerifiedFinal with different evidence: both verdicts recorded as history; closure uses the latest and stays single
+    ok 3 - concurrent recordVerifiedFinal with different evidence: both verdicts recorded as history; closure uses the latest and stays single
+      ---
+      duration_ms: 126.827982
+      type: 'test'
+      ...
+    # Subtest: FIXED (P10.4 adversarial finding): close() on an already verified-final attempt succeeds again and appends a second "closed" event with a different operator (D1; node has the same behaviour)
+    ok 4 - FIXED (P10.4 adversarial finding): close() on an already verified-final attempt succeeds again and appends a second "closed" event with a different operator (D1; node has the same behaviour)
+      ---
+      duration_ms: 119.692117
+      type: 'test'
+      ...
+    # Subtest: importLegacy: id owned by another invoice/tenant/digest/operation → conflict; concurrent identical imports give one row
+    ok 5 - importLegacy: id owned by another invoice/tenant/digest/operation → conflict; concurrent identical imports give one row
+      ---
+      duration_ms: 199.369292
+      type: 'test'
+      ...
+    # Subtest: raw SQL REPLACE/UPSERT on every unique key is refused by triggers
+    ok 6 - raw SQL REPLACE/UPSERT on every unique key is refused by triggers
+      ---
+      duration_ms: 159.545833
+      type: 'test'
+      ...
+    # Subtest: OBSERVATION (documented A8): the D1 binding can DROP TRIGGER; re-applying the schema restores enforcement
+    ok 7 - OBSERVATION (documented A8): the D1 binding can DROP TRIGGER; re-applying the schema restores enforcement
+      ---
+      duration_ms: 866.570117
+      type: 'test'
+      ...
+    # Subtest: parity: the same adversarial sequence yields the same rows, events and refusal messages on node:sqlite and D1
+    ok 8 - parity: the same adversarial sequence yields the same rows, events and refusal messages on node:sqlite and D1
+      ---
+      duration_ms: 1005.418716
+      type: 'test'
+      ...
+    1..8
+ok 4 - ADV-4 D1 lineage writer under adversarial sequences
+  ---
+  duration_ms: 3267.14466
+  type: 'suite'
+  ...
+# Subtest: C2 no invoice read before authorization
+    # Subtest: unknown token: identical 404 and no invoice/signature/attempt query
+    ok 1 - unknown token: identical 404 and no invoice/signature/attempt query
+      ---
+      duration_ms: 26.434762
+      type: 'test'
+      ...
+    # Subtest: expired session: identical 404 and no invoice/signature/attempt query
+    ok 2 - expired session: identical 404 and no invoice/signature/attempt query
+      ---
+      duration_ms: 17.853903
+      type: 'test'
+      ...
+    # Subtest: viewer without permission: identical 404 and no invoice/signature/attempt query
+    ok 3 - viewer without permission: identical 404 and no invoice/signature/attempt query
+      ---
+      duration_ms: 32.350024
+      type: 'test'
+      ...
+    # Subtest: permission missing for this invoice: identical 404 and no invoice/signature/attempt query
+    ok 4 - permission missing for this invoice: identical 404 and no invoice/signature/attempt query
+      ---
+      duration_ms: 38.555736
+      type: 'test'
+      ...
+    # Subtest: cross-tenant viewer: identical 404 and no invoice/signature/attempt query
+    ok 5 - cross-tenant viewer: identical 404 and no invoice/signature/attempt query
+      ---
+      duration_ms: 22.024107
+      type: 'test'
+      ...
+    # Subtest: nonexistent invoice: identical 404 and no invoice/signature/attempt query
+    ok 6 - nonexistent invoice: identical 404 and no invoice/signature/attempt query
+      ---
+      duration_ms: 24.90691
+      type: 'test'
+      ...
+    # Subtest: an authorized viewer does reach the invoice, signatures and attempts (the instrument works)
+    ok 7 - an authorized viewer does reach the invoice, signatures and attempts (the instrument works)
+      ---
+      duration_ms: 118.831309
+      type: 'test'
+      ...
+    1..7
+ok 5 - C2 no invoice read before authorization
+  ---
+  duration_ms: 1150.614312
+  type: 'suite'
+  ...
+# Subtest: request time
+    # Subtest: one request time is used for all observations (a live clock would fail closed)
+    ok 1 - one request time is used for all observations (a live clock would fail closed)
+      ---
+      duration_ms: 109.875059
+      type: 'test'
+      ...
+    1..1
+ok 6 - request time
+  ---
+  duration_ms: 110.302812
+  type: 'suite'
+  ...
+# Subtest: rate limiting (per isolate, per key id)
+    # Subtest: bucket exhaustion → 429 after authentication; refills over time
+    ok 1 - bucket exhaustion → 429 after authentication; refills over time
+      ---
+      duration_ms: 357.156064
+      type: 'test'
+      ...
+    # Subtest: unauthenticated requests do not consume a key bucket
+    ok 2 - unauthenticated requests do not consume a key bucket
+      ---
+      duration_ms: 15.088627
+      type: 'test'
+      ...
+    1..2
+ok 7 - rate limiting (per isolate, per key id)
+  ---
+  duration_ms: 372.469287
+  type: 'suite'
+  ...
+# Subtest: service key configuration
+    # Subtest: parseServiceKeys accepts only {keyId: secret>=32}
+    ok 1 - parseServiceKeys accepts only {keyId: secret>=32}
+      ---
+      duration_ms: 0.348861
+      type: 'test'
+      ...
+    # Subtest: an exception in a repository becomes 503 unavailable without leaking the message
+    ok 2 - an exception in a repository becomes 503 unavailable without leaking the message
+      ---
+      duration_ms: 14.690895
+      type: 'test'
+      ...
+    1..2
+ok 8 - service key configuration
+  ---
+  duration_ms: 15.244344
+  type: 'suite'
+  ...
+# Subtest: tampered rows fail closed
+    # Subtest: a row whose body no longer matches its digest yields the uniform 404
+    ok 1 - a row whose body no longer matches its digest yields the uniform 404
+      ---
+      duration_ms: 129.907983
+      type: 'test'
+      ...
+    # Subtest: a hand-written reconciled-not-landed row cannot exist (trigger), so it can never unblock
+    ok 2 - a hand-written reconciled-not-landed row cannot exist (trigger), so it can never unblock
+      ---
+      duration_ms: 5.766338
+      type: 'test'
+      ...
+    1..2
+ok 9 - tampered rows fail closed
+  ---
+  duration_ms: 135.869693
+  type: 'suite'
+  ...
+# Subtest: A5 identity, hash and REPLACE guards on D1
+    # Subtest: recordAttempt: created, idempotent existing, conflicting id refused
+    ok 1 - recordAttempt: created, idempotent existing, conflicting id refused
+      ---
+      duration_ms: 50.642681
+      type: 'test'
+      ...
+    # Subtest: immutable identity: every identity column is refused by the trigger (raw SQL)
+    ok 2 - immutable identity: every identity column is refused by the trigger (raw SQL)
+      ---
+      duration_ms: 123.563489
+      type: 'test'
+      ...
+    # Subtest: set-once hash: same hash idempotent (no extra event), different hash refused (store and raw SQL)
+    ok 3 - set-once hash: same hash idempotent (no extra event), different hash refused (store and raw SQL)
+      ---
+      duration_ms: 114.409295
+      type: 'test'
+      ...
+    # Subtest: the conditional event write (changes() inside a batch) only logs a real hash change
+    ok 4 - the conditional event write (changes() inside a batch) only logs a real hash change
+      ---
+      duration_ms: 69.725008
+      type: 'test'
+      ...
+    # Subtest: unique hash across attempts (store, raw insert, raw update)
+    ok 5 - unique hash across attempts (store, raw insert, raw update)
+      ---
+      duration_ms: 97.648262
+      type: 'test'
+      ...
+    # Subtest: REPLACE guards: OR REPLACE cannot delete a row through id, operation key, hash or event seq
+    ok 6 - REPLACE guards: OR REPLACE cannot delete a row through id, operation key, hash or event seq
+      ---
+      duration_ms: 97.111979
+      type: 'test'
+      ...
+    # Subtest: append-only events and recorded-open inserts
+    ok 7 - append-only events and recorded-open inserts
+      ---
+      duration_ms: 41.633948
+      type: 'test'
+      ...
+    1..7
+ok 10 - A5 identity, hash and REPLACE guards on D1
+  ---
+  duration_ms: 1271.491975
+  type: 'suite'
+  ...
+# Subtest: A5/C3 verified-final is terminal and requires attested evidence
+    # Subtest: appendVerification refuses verified-final; negative verdicts are bound to the stored hash
+    ok 1 - appendVerification refuses verified-final; negative verdicts are bound to the stored hash
+      ---
+      duration_ms: 66.705758
+      type: 'test'
+      ...
+    # Subtest: recordVerifiedFinal: unattested, foreign and unfinalized evidence are refused
+    ok 2 - recordVerifiedFinal: unattested, foreign and unfinalized evidence are refused
+      ---
+      duration_ms: 142.043814
+      type: 'test'
+      ...
+    # Subtest: trigger: a raw verified-final verdict from a caller-named verifier cannot close the attempt
+    ok 3 - trigger: a raw verified-final verdict from a caller-named verifier cannot close the attempt
+      ---
+      duration_ms: 122.465841
+      type: 'test'
+      ...
+    # Subtest: a newer negative verdict after verified-final blocks closing (latest verdict wins)
+    ok 4 - a newer negative verdict after verified-final blocks closing (latest verdict wins)
+      ---
+      duration_ms: 98.240254
+      type: 'test'
+      ...
+    # Subtest: verified-final is terminal: a fresh id under the same commitment is refused (store and raw SQL); closed rows are frozen
+    ok 5 - verified-final is terminal: a fresh id under the same commitment is refused (store and raw SQL); closed rows are frozen
+      ---
+      duration_ms: 278.461756
+      type: 'test'
+      ...
+    # Subtest: A7: a new commitment digest is refused after final and while open (store and raw SQL)
+    ok 6 - A7: a new commitment digest is refused after final and while open (store and raw SQL)
+      ---
+      duration_ms: 307.918539
+      type: 'test'
+      ...
+    # Subtest: reconciled-not-landed is refused by the store and by raw SQL, so hashless/unknown attempts keep blocking
+    ok 7 - reconciled-not-landed is refused by the store and by raw SQL, so hashless/unknown attempts keep blocking
+      ---
+      duration_ms: 72.991612
+      type: 'test'
+      ...
+    1..7
+ok 11 - A5/C3 verified-final is terminal and requires attested evidence
+  ---
+  duration_ms: 1089.504803
+  type: 'suite'
+  ...
+# Subtest: legacy unresolved attempts
+    # Subtest: import is unresolved, idempotent, conflict-checked and blocks new attempts
+    ok 1 - import is unresolved, idempotent, conflict-checked and blocks new attempts
+      ---
+      duration_ms: 135.711959
+      type: 'test'
+      ...
+    1..1
+ok 12 - legacy unresolved attempts
+  ---
+  duration_ms: 135.935418
+  type: 'suite'
+  ...
+# Subtest: reader parity with the node:sqlite AttemptLineageReader
+    # Subtest: the same operations produce identical attested rows (shape, history, seq)
+    ok 1 - the same operations produce identical attested rows (shape, history, seq)
+      ---
+      duration_ms: 838.212198
+      type: 'test'
+      ...
+    1..1
+ok 13 - reader parity with the node:sqlite AttemptLineageReader
+  ---
+  duration_ms: 838.426226
+  type: 'suite'
+  ...
+# Subtest: A6 concurrency and batch atomicity
+    # Subtest: many concurrent recordAttempt calls for one key (fresh ids, mixed digests) → exactly one row
+    ok 1 - many concurrent recordAttempt calls for one key (fresh ids, mixed digests) → exactly one row
+      ---
+      duration_ms: 923.042941
+      type: 'test'
+      ...
+    # Subtest: concurrent identical claims → one created, the rest existing; one claimed event
+    ok 2 - concurrent identical claims → one created, the rest existing; one claimed event
+      ---
+      duration_ms: 318.891434
+      type: 'test'
+      ...
+    # Subtest: raw concurrent inserts (no pre-check at all) still yield one row: the triggers are the authority
+    ok 3 - raw concurrent inserts (no pre-check at all) still yield one row: the triggers are the authority
+      ---
+      duration_ms: 101.466137
+      type: 'test'
+      ...
+    # Subtest: a failing statement rolls back the whole batch
+    ok 4 - a failing statement rolls back the whole batch
+      ---
+      duration_ms: 22.329565
+      type: 'test'
+      ...
+    # Subtest: close(): if the UPDATE is refused, the closed event in the same batch is rolled back
+    ok 5 - close(): if the UPDATE is refused, the closed event in the same batch is rolled back
+      ---
+      duration_ms: 45.018286
+      type: 'test'
+      ...
+    1..5
+ok 14 - A6 concurrency and batch atomicity
+  ---
+  duration_ms: 1411.075237
+  type: 'suite'
+  ...
+# Subtest: A8 unsupported D1 semantics (observed on local workerd)
+    # Subtest: no interactive transactions: BEGIN / COMMIT / ROLLBACK / SAVEPOINT are rejected
+    ok 1 - no interactive transactions: BEGIN / COMMIT / ROLLBACK / SAVEPOINT are rejected
+      ---
+      duration_ms: 25.774301
+      type: 'test'
+      ...
+    # Subtest: no journal_mode / busy_timeout / query_only / ATTACH (not authorized)
+    ok 2 - no journal_mode / busy_timeout / query_only / ATTACH (not authorized)
+      ---
+      duration_ms: 25.55309
+      type: 'test'
+      ...
+    # Subtest: foreign keys are enforced by default (event for an unknown attempt is refused)
+    ok 3 - foreign keys are enforced by default (event for an unknown attempt is refused)
+      ---
+      duration_ms: 6.023726
+      type: 'test'
+      ...
+    # Subtest: no read-only connection: the binding that reads can also write and even drop triggers (code review is the guard)
+    ok 4 - no read-only connection: the binding that reads can also write and even drop triggers (code review is the guard)
+      ---
+      duration_ms: 804.488038
+      type: 'test'
+      ...
+    # Subtest: the schema is idempotent and applies statement by statement
+    ok 5 - the schema is idempotent and applies statement by statement
+      ---
+      duration_ms: 289.461789
+      type: 'test'
+      ...
+    1..5
+ok 15 - A8 unsupported D1 semantics (observed on local workerd)
+  ---
+  duration_ms: 1151.794356
+  type: 'suite'
+  ...
+# Subtest: recovery: a persisted local D1 keeps its invariants after restart
+    # Subtest: reopen the persist dir; rows, triggers and terminal state survive
+    ok 1 - reopen the persist dir; rows, triggers and terminal state survive
+      ---
+      duration_ms: 1171.396615
+      type: 'test'
+      ...
+    1..1
+ok 16 - recovery: a persisted local D1 keeps its invariants after restart
+  ---
+  duration_ms: 1171.560492
+  type: 'suite'
+  ...
+# Subtest: R1 global replay across two separate Worker instances (one persisted D1)
+    # Subtest: the same signed request: first instance 200, second instance 401
+    ok 1 - the same signed request: first instance 200, second instance 401
+      ---
+      duration_ms: 23.483526
+      type: 'test'
+      ...
+    # Subtest: reverse order: second instance first
+    ok 2 - reverse order: second instance first
+      ---
+      duration_ms: 8.39918
+      type: 'test'
+      ...
+    # Subtest: racing concurrently on both instances: exactly one 200
+    ok 3 - racing concurrently on both instances: exactly one 200
+      ---
+      duration_ms: 35.283033
+      type: 'test'
+      ...
+    1..3
+ok 17 - R1 global replay across two separate Worker instances (one persisted D1)
+  ---
+  duration_ms: 956.438806
+  type: 'suite'
+  ...
+# Subtest: R2 nonce store failures fail closed
+    # Subtest: nonce table dropped → 503 unavailable, never 200 (handler and real Worker)
+    ok 1 - nonce table dropped → 503 unavailable, never 200 (handler and real Worker)
+      ---
+      duration_ms: 550.748534
+      type: 'test'
+      ...
+    # Subtest: a throwing D1 binding → 503; claimNonce classifies only the PK conflict as replay
+    ok 2 - a throwing D1 binding → 503; claimNonce classifies only the PK conflict as replay
+      ---
+      duration_ms: 22.899097
+      type: 'test'
+      ...
+    # Subtest: unauthenticated requests never write a nonce row
+    ok 3 - unauthenticated requests never write a nonce row
+      ---
+      duration_ms: 12.276777
+      type: 'test'
+      ...
+    # Subtest: pruning never deletes rows a replay inside the skew window could match
+    ok 4 - pruning never deletes rows a replay inside the skew window could match
+      ---
+      duration_ms: 42.624136
+      type: 'test'
+      ...
+    1..4
+ok 18 - R2 nonce store failures fail closed
+  ---
+  duration_ms: 629.166601
+  type: 'suite'
+  ...
+# Subtest: nonce-store acknowledgment must prove exactly one successful insert
+ok 19 - nonce-store acknowledgment must prove exactly one successful insert
+  ---
+  duration_ms: 0.295297
+  type: 'test'
+  ...
+# Subtest: S1 invitation exchange
+    # Subtest: a valid invitation yields a session (12 h absolute, 30 min idle) whose token is stored only hashed
+    ok 1 - a valid invitation yields a session (12 h absolute, 30 min idle) whose token is stored only hashed
+      ---
+      duration_ms: 65.902843
+      type: 'test'
+      ...
+    # Subtest: single use: the second exchange of the same code → 403 invalid-credentials, no second session
+    ok 2 - single use: the second exchange of the same code → 403 invalid-credentials, no second session
+      ---
+      duration_ms: 97.472687
+      type: 'test'
+      ...
+    # Subtest: concurrent exchanges of one code: exactly one session
+    ok 3 - concurrent exchanges of one code: exactly one session
+      ---
+      duration_ms: 152.058802
+      type: 'test'
+      ...
+    # Subtest: expired (at and after expiry) and unknown invitations → identical 403
+    ok 4 - expired (at and after expiry) and unknown invitations → identical 403
+      ---
+      duration_ms: 52.569819
+      type: 'test'
+      ...
+    # Subtest: malformed bodies → 400 invalid-request
+    ok 5 - malformed bodies → 400 invalid-request
+      ---
+      duration_ms: 55.03186
+      type: 'test'
+      ...
+    # Subtest: body larger than MAX_BODY_BYTES → 400 (declared or streamed); invalid UTF-8 → 400
+    ok 6 - body larger than MAX_BODY_BYTES → 400 (declared or streamed); invalid UTF-8 → 400
+      ---
+      duration_ms: 2.32594
+      type: 'test'
+      ...
+    # Subtest: wrong content type → 400; wrong method → 405 with allow: POST
+    ok 7 - wrong content type → 400; wrong method → 405 with allow: POST
+      ---
+      duration_ms: 28.267912
+      type: 'test'
+      ...
+    # Subtest: a body tampered after signing → 401, invitation not consumed
+    ok 8 - a body tampered after signing → 401, invitation not consumed
+      ---
+      duration_ms: 23.065615
+      type: 'test'
+      ...
+    # Subtest: the created session works for its own tenant only
+    ok 9 - the created session works for its own tenant only
+      ---
+      duration_ms: 359.51395
+      type: 'test'
+      ...
+    # Subtest: invitation rows are single-use and immutable at the database (triggers)
+    ok 10 - invitation rows are single-use and immutable at the database (triggers)
+      ---
+      duration_ms: 34.89022
+      type: 'test'
+      ...
+    # Subtest: invitation exchange is rate limited per key id (stricter bucket) → 429
+    ok 11 - invitation exchange is rate limited per key id (stricter bucket) → 429
+      ---
+      duration_ms: 65.260927
+      type: 'test'
+      ...
+    1..11
+ok 20 - S1 invitation exchange
+  ---
+  duration_ms: 1827.175825
+  type: 'suite'
+  ...
+# Subtest: S1 through the real Worker (Miniflare)
+    # Subtest: exchange, use, reuse refused
+    ok 1 - exchange, use, reuse refused
+      ---
+      duration_ms: 83.861043
+      type: 'test'
+      ...
+    1..1
+ok 21 - S1 through the real Worker (Miniflare)
+  ---
+  duration_ms: 84.003639
+  type: 'suite'
+  ...
+# Subtest: S2 session lifecycle
+    # Subtest: idle timeout: unused for 30 min → 404
+    ok 1 - idle timeout: unused for 30 min → 404
+      ---
+      duration_ms: 48.725885
+      type: 'test'
+      ...
+    # Subtest: sliding refresh: use every 29 min keeps it alive, but never past the absolute expiry
+    ok 2 - sliding refresh: use every 29 min keeps it alive, but never past the absolute expiry
+      ---
+      duration_ms: 2073.758828
+      type: 'test'
+      ...
+    # Subtest: absolute expiry: a session used continuously still dies at 12 h
+    ok 3 - absolute expiry: a session used continuously still dies at 12 h
+      ---
+      duration_ms: 3059.479485
+      type: 'test'
+      ...
+    # Subtest: revoke then use → 404; revoke is idempotent; revocation cannot be undone
+    ok 4 - revoke then use → 404; revoke is idempotent; revocation cannot be undone
+      ---
+      duration_ms: 151.370882
+      type: 'test'
+      ...
+    # Subtest: unknown-token revoke → revoked (no oracle); malformed token → 404
+    ok 5 - unknown-token revoke → revoked (no oracle); malformed token → 404
+      ---
+      duration_ms: 22.274189
+      type: 'test'
+      ...
+    # Subtest: operator revoke of a viewer kills all its sessions, not other viewers'
+    ok 6 - operator revoke of a viewer kills all its sessions, not other viewers'
+      ---
+      duration_ms: 218.651834
+      type: 'test'
+      ...
+    1..6
+ok 22 - S2 session lifecycle
+  ---
+  duration_ms: 5574.807396
+  type: 'suite'
+  ...
+# Subtest: GET /v1/invoices (permitted list)
+    # Subtest: only permitted invoices of the viewer's own tenant; cross-tenant never listed
+    ok 1 - only permitted invoices of the viewer's own tenant; cross-tenant never listed
+      ---
+      duration_ms: 138.021911
+      type: 'test'
+      ...
+    # Subtest: a tampered row is skipped; the list is capped at MAX_LIST
+    ok 2 - a tampered row is skipped; the list is capped at MAX_LIST
+      ---
+      duration_ms: 1273.174069
+      type: 'test'
+      ...
+    1..2
+ok 23 - GET /v1/invoices (permitted list)
+  ---
+  duration_ms: 1411.423909
+  type: 'suite'
+  ...
+# Subtest: optional chain hook
+    # Subtest: unset by default: no chain reader
+    ok 1 - unset by default: no chain reader
+      ---
+      duration_ms: 0.169366
+      type: 'test'
+      ...
+    # Subtest: https and loopback http accepted; anything else rejected; attribution code required
+    ok 2 - https and loopback http accepted; anything else rejected; attribution code required
+      ---
+      duration_ms: 0.365823
+      type: 'test'
+      ...
+    1..2
+ok 24 - optional chain hook
+  ---
+  duration_ms: 0.603677
+  type: 'suite'
+  ...
+# Subtest: rotation consumes a valid invite atomically and revokes only the prior browser session
+ok 25 - rotation consumes a valid invite atomically and revokes only the prior browser session
+  ---
+  duration_ms: 392.861556
+  type: 'test'
+  ...
+# Subtest: idempotent create survives a lost response and stale keys cannot change terms
+ok 26 - idempotent create survives a lost response and stale keys cannot change terms
+  ---
+  duration_ms: 1121.696469
+  type: 'test'
+  ...
+# Subtest: concurrent revision changes admit one writer, and committed terms remain immutable
+ok 27 - concurrent revision changes admit one writer, and committed terms remain immutable
+  ---
+  duration_ms: 72.99014
+  type: 'test'
+  ...
+# Subtest: cross-tenant and same-tenant viewer denial, and local gate before private data
+ok 28 - cross-tenant and same-tenant viewer denial, and local gate before private data
+  ---
+  duration_ms: 33.062267
+  type: 'test'
+  ...
+# Subtest: identical invoice aliases and terms in two tenants commit to different digests
+ok 29 - identical invoice aliases and terms in two tenants commit to different digests
+  ---
+  duration_ms: 46.64412
+  type: 'test'
+  ...
+# Subtest: share reveals one commitment only, is revocable, and cancellation invalidates existing links
+ok 30 - share reveals one commitment only, is revocable, and cancellation invalidates existing links
+  ---
+  duration_ms: 102.069563
+  type: 'test'
+  ...
+# Subtest: expired shares fail closed and D1 schema failure returns a redacted 503
+ok 31 - expired shares fail closed and D1 schema failure returns a redacted 503
+  ---
+  duration_ms: 113.352189
+  type: 'test'
+  ...
+# Subtest: revisions survive restart and migration re-entry independently of financial lineage
+ok 32 - revisions survive restart and migration re-entry independently of financial lineage
+  ---
+  duration_ms: 444.183196
+  type: 'test'
+  ...
+# Subtest: Worker defaults closed before opening D1
+ok 33 - Worker defaults closed before opening D1
+  ---
+  duration_ms: 2.79778
+  type: 'test'
+  ...
+# Subtest: atomic shared D1 quota survives concurrency, rejects stale clocks and resets forward
+ok 34 - atomic shared D1 quota survives concurrency, rejects stale clocks and resets forward
+  ---
+  duration_ms: 814.142295
+  type: 'test'
+  ...
+# Subtest: A4 read-only Worker
+    # Subtest: health requires service auth and returns the health body
+    ok 1 - health requires service auth and returns the health body
+      ---
+      duration_ms: 13.266897
+      type: 'test'
+      ...
+    # Subtest: a valid signed request returns a schema-v2 projection, never settled without a chain reader
+    ok 2 - a valid signed request returns a schema-v2 projection, never settled without a chain reader
+      ---
+      duration_ms: 92.000512
+      type: 'test'
+      ...
+    # Subtest: attempt scenarios project as unverified, unknown/missing-hash and lineage-unresolved
+    ok 3 - attempt scenarios project as unverified, unknown/missing-hash and lineage-unresolved
+      ---
+      duration_ms: 62.538851
+      type: 'test'
+      ...
+    1..3
+ok 35 - A4 read-only Worker
+  ---
+  duration_ms: 1116.073401
+  type: 'suite'
+  ...
+# Subtest: C1 service authentication
+    # Subtest: wrong key → 401 uniform
+    ok 1 - wrong key → 401 uniform
+      ---
+      duration_ms: 3.790464
+      type: 'test'
+      ...
+    # Subtest: unknown key id → 401 uniform
+    ok 2 - unknown key id → 401 uniform
+      ---
+      duration_ms: 3.048834
+      type: 'test'
+      ...
+    # Subtest: skew > 60 s (past) → 401 uniform
+    ok 3 - skew > 60 s (past) → 401 uniform
+      ---
+      duration_ms: 2.422355
+      type: 'test'
+      ...
+    # Subtest: skew > 60 s (future) → 401 uniform
+    ok 4 - skew > 60 s (future) → 401 uniform
+      ---
+      duration_ms: 2.263017
+      type: 'test'
+      ...
+    # Subtest: tampered path → 401 uniform
+    ok 5 - tampered path → 401 uniform
+      ---
+      duration_ms: 2.863565
+      type: 'test'
+      ...
+    # Subtest: tampered viewer token → 401 uniform
+    ok 6 - tampered viewer token → 401 uniform
+      ---
+      duration_ms: 3.883707
+      type: 'test'
+      ...
+    # Subtest: tampered signature → 401 uniform
+    ok 7 - tampered signature → 401 uniform
+      ---
+      duration_ms: 2.414545
+      type: 'test'
+      ...
+    # Subtest: missing headers → 401 uniform
+    ok 8 - missing headers → 401 uniform
+      ---
+      duration_ms: 1.861126
+      type: 'test'
+      ...
+    # Subtest: missing x-daidai-key-id → 401 uniform
+    ok 9 - missing x-daidai-key-id → 401 uniform
+      ---
+      duration_ms: 2.38128
+      type: 'test'
+      ...
+    # Subtest: missing x-daidai-timestamp → 401 uniform
+    ok 10 - missing x-daidai-timestamp → 401 uniform
+      ---
+      duration_ms: 2.122222
+      type: 'test'
+      ...
+    # Subtest: missing x-daidai-nonce → 401 uniform
+    ok 11 - missing x-daidai-nonce → 401 uniform
+      ---
+      duration_ms: 2.011689
+      type: 'test'
+      ...
+    # Subtest: missing x-daidai-signature → 401 uniform
+    ok 12 - missing x-daidai-signature → 401 uniform
+      ---
+      duration_ms: 2.194391
+      type: 'test'
+      ...
+    # Subtest: Origin header present on a validly signed request → 401 uniform
+    ok 13 - Origin header present on a validly signed request → 401 uniform
+      ---
+      duration_ms: 4.9724
+      type: 'test'
+      ...
+    # Subtest: replayed nonce → 401 (first use succeeds)
+    ok 14 - replayed nonce → 401 (first use succeeds)
+      ---
+      duration_ms: 18.842321
+      type: 'test'
+      ...
+    # Subtest: Origin header on health and on OPTIONS preflight → 401, no CORS
+    ok 15 - Origin header on health and on OPTIONS preflight → 401, no CORS
+      ---
+      duration_ms: 4.450942
+      type: 'test'
+      ...
+    1..15
+ok 36 - C1 service authentication
+  ---
+  duration_ms: 60.317887
+  type: 'suite'
+  ...
+# Subtest: C2 viewer access (uniform 404)
+    # Subtest: unknown, expired, no-permission, cross-tenant, nonexistent and malformed tokens are indistinguishable
+    ok 1 - unknown, expired, no-permission, cross-tenant, nonexistent and malformed tokens are indistinguishable
+      ---
+      duration_ms: 52.943412
+      type: 'test'
+      ...
+    1..1
+ok 37 - C2 viewer access (uniform 404)
+  ---
+  duration_ms: 53.122822
+  type: 'suite'
+  ...
+# Subtest: A2 malformed requests
+    # Subtest: /v1/invoices/inv-a1/authoritative?x=1 → 400
+    ok 1 - /v1/invoices/inv-a1/authoritative?x=1 → 400
+      ---
+      duration_ms: 3.840944
+      type: 'test'
+      ...
+    # Subtest: /v1/invoices/inv-a1/authoritative/extra → 400
+    ok 2 - /v1/invoices/inv-a1/authoritative/extra → 400
+      ---
+      duration_ms: 2.616702
+      type: 'test'
+      ...
+    # Subtest: /v1/invoices/%2e%2e/authoritative → 400
+    ok 3 - /v1/invoices/%2e%2e/authoritative → 400
+      ---
+      duration_ms: 2.579138
+      type: 'test'
+      ...
+    # Subtest: /v1/invoices/-bad/authoritative → 400
+    ok 4 - /v1/invoices/-bad/authoritative → 400
+      ---
+      duration_ms: 2.303953
+      type: 'test'
+      ...
+    # Subtest: /v1/invoices/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa → 400
+    ok 5 - /v1/invoices/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa → 400
+      ---
+      duration_ms: 2.618224
+      type: 'test'
+      ...
+    # Subtest: /v1/invoices//authoritative → 400
+    ok 6 - /v1/invoices//authoritative → 400
+      ---
+      duration_ms: 2.442571
+      type: 'test'
+      ...
+    # Subtest: /v2/health → 400
+    ok 7 - /v2/health → 400
+      ---
+      duration_ms: 2.294618
+      type: 'test'
+      ...
+    # Subtest: /v1/health/ → 400
+    ok 8 - /v1/health/ → 400
+      ---
+      duration_ms: 2.329358
+      type: 'test'
+      ...
+    # Subtest: / → 400
+    ok 9 - / → 400
+      ---
+      duration_ms: 2.940071
+      type: 'test'
+      ...
+    # Subtest: /v1/invoices/inv%ZZ/authoritative → 400
+    ok 10 - /v1/invoices/inv%ZZ/authoritative → 400
+      ---
+      duration_ms: 2.582859
+      type: 'test'
+      ...
+    # Subtest: POST → 405
+    ok 11 - POST → 405
+      ---
+      duration_ms: 3.03408
+      type: 'test'
+      ...
+    # Subtest: PUT → 405
+    ok 12 - PUT → 405
+      ---
+      duration_ms: 2.915262
+      type: 'test'
+      ...
+    # Subtest: DELETE → 405
+    ok 13 - DELETE → 405
+      ---
+      duration_ms: 2.303969
+      type: 'test'
+      ...
+    # Subtest: PATCH → 405
+    ok 14 - PATCH → 405
+      ---
+      duration_ms: 2.91509
+      type: 'test'
+      ...
+    # Subtest: OPTIONS → 405
+    ok 15 - OPTIONS → 405
+      ---
+      duration_ms: 2.421316
+      type: 'test'
+      ...
+    1..15
+ok 38 - A2 malformed requests
+  ---
+  duration_ms: 40.765795
+  type: 'suite'
+  ...
+# Subtest: C4 misconfiguration fails closed
+    # Subtest: no service keys configured → 503 unavailable, no data
+    ok 1 - no service keys configured → 503 unavailable, no data
+      ---
+      duration_ms: 279.964313
+      type: 'test'
+      ...
+    # Subtest: D1 without schema (nonce store missing) → 503 unavailable, fail closed, message not leaked
+    ok 2 - D1 without schema (nonce store missing) → 503 unavailable, fail closed, message not leaked
+      ---
+      duration_ms: 247.846333
+      type: 'test'
+      ...
+    1..2
+ok 39 - C4 misconfiguration fails closed
+  ---
+  duration_ms: 528.022557
+  type: 'suite'
+  ...
+# Subtest: C4 log redaction
+    # Subtest: Worker logs carry only rid, route, status and key id: no tokens, signatures, nonces or invoice data
+    ok 1 - Worker logs carry only rid, route, status and key id: no tokens, signatures, nonces or invoice data
+      ---
+      duration_ms: 217.791038
+      type: 'test'
+      ...
+    1..1
+ok 40 - C4 log redaction
+  ---
+  duration_ms: 217.973692
+  type: 'suite'
+  ...
+1..40
+# tests 158
+# suites 29
+# pass 158
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 36393.153307

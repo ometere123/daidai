@@ -1,0 +1,1 @@
+seeded local D1 at .wrangler/local-d1; identities in .wrangler/demo-identities.json and .dev.vars (gitignored)

@@ -1,0 +1,1 @@
+copy-lint: --kind takes tech, software, gaming, product, place or service

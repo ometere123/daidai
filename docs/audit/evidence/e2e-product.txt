@@ -1,0 +1,32 @@
+PASS unauthenticated /invoices redirects to /login
+PASS login with a single-use invitation lands on /invoices
+PASS list shows permitted invoices of own tenant only — inv-a1:true inv-a2:true inv-a3:true inv-a4:false inv-b1:false
+PASS session cookie is __Host-, HttpOnly, Secure, SameSite=Strict, Path=/
+PASS session cookie is not readable by page JavaScript
+PASS detail shows the authoritative record (digest, authorization, payout outcome unknown)
+PASS detail never shows Settled without verified chain evidence
+PASS no session token in the HTML
+PASS cross-tenant invoice is not available
+PASS logout clears the session cookie
+PASS after logout, private pages redirect to /login
+PASS reusing an invitation shows the uniform failure
+PASS a fresh invitation creates a new session
+PASS fixture demo at /demo unchanged (Demo workspace strip)
+PASS P11 merchant arrives at an empty isolated workspace
+PASS P11 persistent draft created with exact cNGN target
+PASS P11 commitment appends an immutable third revision
+PASS P11 cross-origin browser mutation denied
+PASS P11 payer cannot read foreign merchant history
+PASS P11 payer sees the scoped commitment and honest quote unavailability
+PASS P11 mobile review fits without horizontal overflow
+PASS P11 review is private and browser HTML omits service and share keys
+PASS P11 unknown evidence keeps payout separate and exposes no retry or settled state
+PASS P11 revoked capability immediately loses access
+PASS P13 activity uses the authorized projection and identifies evidence gaps
+PASS P11 cancellation retains committed revision history
+PASS P11 merchant and payer flows make zero wallet-provider calls
+PASS a valid session cookie is present for the Preview check
+PASS Preview without DAIDAI_PREVIEW_ACCESS: private pages and /login are 404 — 404 404
+PASS no wallet-provider calls across all pages and navigations
+
+30/30 checks passed

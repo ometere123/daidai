@@ -1,0 +1,565 @@
+[
+ {
+  "route": "/",
+  "vp": "desktop",
+  "status": 200,
+  "ms": 729,
+  "title": "Daidai — Exact cNGN invoices",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 1440,
+  "clientW": 1440,
+  "overflowX": false,
+  "interactive": 12,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\"",
+   "\"JetBrains Mono\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 696,
+  "axe": [
+   {
+    "id": "landmark-complementary-is-top-level",
+    "impact": "moderate",
+    "nodes": 1
+   }
+  ],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/agent",
+  "vp": "desktop",
+  "status": 200,
+  "ms": 617,
+  "title": "Agent #10103 — Daidai",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 1440,
+  "clientW": 1440,
+  "overflowX": false,
+  "interactive": 9,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 692,
+  "axe": [],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/proof",
+  "vp": "desktop",
+  "status": 200,
+  "ms": 592,
+  "title": "Public verification — Daidai",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 1440,
+  "clientW": 1440,
+  "overflowX": false,
+  "interactive": 9,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 609,
+  "axe": [],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/demo",
+  "vp": "desktop",
+  "status": 200,
+  "ms": 647,
+  "title": "Demo (synthetic data) — Daidai",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 1440,
+  "clientW": 1440,
+  "overflowX": false,
+  "interactive": 32,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 1135,
+  "axe": [
+   {
+    "id": "region",
+    "impact": "moderate",
+    "nodes": 1
+   }
+  ],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/pay",
+  "vp": "desktop",
+  "status": 200,
+  "ms": 589,
+  "title": "Payer review — Daidai",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 1440,
+  "clientW": 1440,
+  "overflowX": false,
+  "interactive": 9,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 205,
+  "axe": [
+   {
+    "id": "landmark-no-duplicate-banner",
+    "impact": "moderate",
+    "nodes": 1
+   },
+   {
+    "id": "landmark-unique",
+    "impact": "moderate",
+    "nodes": 1
+   }
+  ],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/",
+  "vp": "tablet",
+  "status": 200,
+  "ms": 623,
+  "title": "Daidai — Exact cNGN invoices",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 820,
+  "clientW": 820,
+  "overflowX": false,
+  "interactive": 12,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\"",
+   "\"JetBrains Mono\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 696,
+  "axe": [
+   {
+    "id": "landmark-complementary-is-top-level",
+    "impact": "moderate",
+    "nodes": 1
+   }
+  ],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/agent",
+  "vp": "tablet",
+  "status": 200,
+  "ms": 587,
+  "title": "Agent #10103 — Daidai",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 820,
+  "clientW": 820,
+  "overflowX": false,
+  "interactive": 9,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 692,
+  "axe": [],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/proof",
+  "vp": "tablet",
+  "status": 200,
+  "ms": 585,
+  "title": "Public verification — Daidai",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 820,
+  "clientW": 820,
+  "overflowX": false,
+  "interactive": 9,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 609,
+  "axe": [],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/demo",
+  "vp": "tablet",
+  "status": 200,
+  "ms": 624,
+  "title": "Demo (synthetic data) — Daidai",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 820,
+  "clientW": 820,
+  "overflowX": false,
+  "interactive": 32,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 747,
+  "axe": [
+   {
+    "id": "landmark-no-duplicate-banner",
+    "impact": "moderate",
+    "nodes": 1
+   },
+   {
+    "id": "landmark-unique",
+    "impact": "moderate",
+    "nodes": 1
+   },
+   {
+    "id": "region",
+    "impact": "moderate",
+    "nodes": 1
+   }
+  ],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/pay",
+  "vp": "tablet",
+  "status": 200,
+  "ms": 583,
+  "title": "Payer review — Daidai",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 820,
+  "clientW": 820,
+  "overflowX": false,
+  "interactive": 9,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 205,
+  "axe": [
+   {
+    "id": "landmark-no-duplicate-banner",
+    "impact": "moderate",
+    "nodes": 1
+   },
+   {
+    "id": "landmark-unique",
+    "impact": "moderate",
+    "nodes": 1
+   }
+  ],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/",
+  "vp": "mobile",
+  "status": 200,
+  "ms": 591,
+  "title": "Daidai — Exact cNGN invoices",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 390,
+  "clientW": 390,
+  "overflowX": false,
+  "interactive": 12,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\"",
+   "\"JetBrains Mono\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 696,
+  "axe": [
+   {
+    "id": "landmark-complementary-is-top-level",
+    "impact": "moderate",
+    "nodes": 1
+   }
+  ],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/agent",
+  "vp": "mobile",
+  "status": 200,
+  "ms": 610,
+  "title": "Agent #10103 — Daidai",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 390,
+  "clientW": 390,
+  "overflowX": false,
+  "interactive": 9,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 692,
+  "axe": [],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/proof",
+  "vp": "mobile",
+  "status": 200,
+  "ms": 584,
+  "title": "Public verification — Daidai",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 390,
+  "clientW": 390,
+  "overflowX": false,
+  "interactive": 9,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 609,
+  "axe": [],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/demo",
+  "vp": "mobile",
+  "status": 200,
+  "ms": 645,
+  "title": "Demo (synthetic data) — Daidai",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 390,
+  "clientW": 390,
+  "overflowX": false,
+  "interactive": 32,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 747,
+  "axe": [
+   {
+    "id": "landmark-no-duplicate-banner",
+    "impact": "moderate",
+    "nodes": 1
+   },
+   {
+    "id": "landmark-unique",
+    "impact": "moderate",
+    "nodes": 1
+   },
+   {
+    "id": "region",
+    "impact": "moderate",
+    "nodes": 1
+   }
+  ],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "/pay",
+  "vp": "mobile",
+  "status": 200,
+  "ms": 582,
+  "title": "Payer review — Daidai",
+  "h1": 1,
+  "lang": "en-NG",
+  "scrollW": 390,
+  "clientW": 390,
+  "overflowX": false,
+  "interactive": 9,
+  "smallTargets": 6,
+  "imgsNoAlt": 0,
+  "fonts": [
+   "\"Schibsted Grotesk Variable\""
+  ],
+  "bodyBg": "rgb(246, 246, 242)",
+  "textLen": 205,
+  "axe": [
+   {
+    "id": "landmark-no-duplicate-banner",
+    "impact": "moderate",
+    "nodes": 1
+   },
+   {
+    "id": "landmark-unique",
+    "impact": "moderate",
+    "nodes": 1
+   }
+  ],
+  "console": [],
+  "hosts": [
+   "127.0.0.1:3500"
+  ],
+  "badResponses": []
+ },
+ {
+  "route": "reduced-motion+keyboard(/)",
+  "anim": {
+   "total": 0,
+   "infiniteRunning": 0
+  },
+  "focus": [
+   {
+    "tag": "A",
+    "text": "◆ Daidai",
+    "outline": "solid 2px",
+    "shadow": "none"
+   },
+   {
+    "tag": "A",
+    "text": "Invoices",
+    "outline": "solid 2px",
+    "shadow": "none"
+   },
+   {
+    "tag": "A",
+    "text": "Pay",
+    "outline": "solid 2px",
+    "shadow": "none"
+   },
+   {
+    "tag": "A",
+    "text": "Activity",
+    "outline": "solid 2px",
+    "shadow": "none"
+   },
+   {
+    "tag": "A",
+    "text": "Agent",
+    "outline": "solid 2px",
+    "shadow": "none"
+   },
+   {
+    "tag": "A",
+    "text": "Proof",
+    "outline": "solid 2px",
+    "shadow": "none"
+   },
+   {
+    "tag": "A",
+    "text": "Demo",
+    "outline": "solid 2px",
+    "shadow": "none"
+   },
+   {
+    "tag": "A",
+    "text": "Sign in",
+    "outline": "solid 2px",
+    "shadow": "none"
+   },
+   {
+    "tag": "A",
+    "text": "Create an invoice",
+    "outline": "solid 2px",
+    "shadow": "none"
+   },
+   {
+    "tag": "A",
+    "text": "Review a payment",
+    "outline": "solid 2px",
+    "shadow": "none"
+   },
+   {
+    "tag": "A",
+    "text": "View registration proof ↗",
+    "outline": "solid 2px",
+    "shadow": "none"
+   },
+   {
+    "tag": "A",
+    "text": "Try the isolated demo ↗",
+    "outline": "solid 2px",
+    "shadow": "none"
+   }
+  ]
+ }
+]
