@@ -1,5 +1,5 @@
 # Daidai — authoritative agent instructions
-Read in order: PROGRESS.md → docs/PROJECT.md → docs/PRD.md → docs/ARCHITECTURE.md → docs/IMPLEMENTATION.md → docs/TESTING.md → docs/DESIGN.md → docs/DEMO.md. README is entrypoint; old P08–P13 documents are historical evidence. If conflict, PDR-001 and R01–R12 govern unless owner approves a new decision. Existing safety restrictions are not waived by documentation.
+Read in order: PROGRESS.md → docs/PROJECT.md → docs/PRD.md → docs/ARCHITECTURE.md → docs/IMPLEMENTATION.md → docs/TESTING.md → docs/DESIGN.md → docs/DEMO.md. README is entrypoint; old P08–P13 documents are historical evidence. If conflict, PDR-001, PDR-002 (owner correction of 27 November 2026: the deliverable is a hosted application a real user can complete a real obligation in, with the local pilot as qualification harness) and R01–R18 govern unless owner approves a new decision. Existing safety restrictions are not waived by documentation.
 
 ## Rules
 1. Investigate before changing code. Read exact files, callers, schemas, tests and official docs; inspect lockfiles. Do not invent methods or assume unopened code. Record verified facts separately from hypotheses and blockers.

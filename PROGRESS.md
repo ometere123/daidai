@@ -28,6 +28,12 @@ CI incident: the first push of M0 failed the secret scan on a deliberately fake 
 Evidence: docs/evidence/m4-landing/ (home desktop, home mobile, demo desktop).
 Not done: /demo still shows the site nav above the workspace rail (two wordmarks); the authenticated pages still use generic cards instead of the demo components; keyboard and axe checks were not re-run on the new landing, proof and agent pages; no live Celo observation was possible from the sandbox.
 
+### Owner correction: the deliverable is a hosted application (2026-11-27, PDR-002)
+Source: owner message after an independent source-level review. Verified in source before any change: wallet-readiness only calls eth_chainId; app-gate.ts and proxy.ts close the private product in the public profile by design; the Worker and web app serve the product route only for an isolated loopback runtime and refuse it on Vercel; the Worker's whole API contract is declared read-only with execution disabled; workers/api/src/product.ts binds every invoice to one constant taker; no signature is collected in the product and the payer page states authorization is outstanding as static text; src/wallet-boundary.ts is a local relay that throws unless the origin is http loopback; workers/api/src/d1-lineage.ts is a prototype writer no route imports; the new journal runs on node:sqlite, which a Worker cannot use; the demo drives React state with fixture quotes.
+Decision: keep the existing Next.js, Worker/D1, journal, wallet and validation components; one journal logic with two storage adapters (node:sqlite for qualification, D1 for hosted); an obligation is authoritative in exactly one; the local pilot is the qualification harness and never serves customers; the demo stays isolated; gates are opened by passing hosted gates and owner approval, never removed. Wallet-signature sign-in is the first identity adapter because it also yields the taker and needs no third-party account; an offered third-party identity app id is not needed, and embedded wallets would contradict the no-custody rule. Recorded in PROJECT (delivery objective), PRD R13 to R18, ARCHITECTURE (two modes, verified starting state, hosted boundary, attribution, gate opening), IMPLEMENTATION H1 to H6 and TESTING hosted gates; AGENTS.md now names PDR-002.
+Unrecovered asset: the owner's local checkout holds unpushed hosted-profile Worker work (a hosted mode, forward-only D1 migrations, hosted journey scripts and approval documents) that the earlier CLI deployment contained. It overlaps H3. The owner should push it to a branch so it can be reconciled rather than rebuilt.
+Not done: no hosted code yet beyond this record; no Cloudflare resource exists or has been requested.
+
 ## Open blockers and next action
 | Priority | Blocker | Next evidence |
 |---|---|---|
@@ -39,9 +45,12 @@ Not done: /demo still shows the site nav above the workspace rail (two wordmarks
 | P0 | Loops indexing and current identity unverified | Read-only dashboard and chain check; retain existing wallet, code and agent; no re-registration |
 | P0 | No conversion or external payout | M3 after M2 and a separate financial approval |
 | P1 | Split visual language remains on the authenticated pages and /demo chrome | Authenticated pages on the demo components; hide the site nav inside /demo; axe and keyboard pass. Dead links, old logo, /proof and /agent are fixed (R11) |
-| Deferred | Hosted sign-in (an identity-provider app id was offered) | Not on the P0 path: the pilot is a local journal. Revisit only after M3 and a separate review |
+| P0 hosted | No Cloudflare Worker or D1 exists; hosted routes cannot run | Owner approval to provision a Worker and D1 (dry run first, free plans), then secrets set through the platform, never chat |
+| P0 hosted | RPC provider URLs, Textile access and reservation approval | Provider URLs as Worker secrets, an M0 report with liveReady true, Textile preview then one approved firm request |
+| P0 hosted | Eligibility of payers other than the enrolled wallet is unconfirmed | Ask the organiser; do not change the enrolled wallet or code |
+| P0 hosted | Unpushed hosted-profile work in the owner's local checkout | Owner pushes it to a branch for reconciliation with H3 |
 
-Next highest priority: finish R11 (/demo chrome, authenticated pages on the demo components, accessibility pass), which needs no external access, in parallel with the owner running the M0 probe and recruiting the pilot. Then M2 once liveReady is true. Do not enable dispatch until every gate in TESTING passes. Before any work, inspect current main and PR status; do not overwrite concurrent changes.
+Next highest priority: the hosted vertical slice in dependency order, H1 wallet authentication then H2 taker identity then H3 hosted journal (IMPLEMENTATION), which needs no external access to build and test offline, in parallel with the owner running the M0 probe and recruiting the pilot. Then M2 once liveReady is true. Do not enable dispatch until every gate in TESTING passes. Before any work, inspect current main and PR status; do not overwrite concurrent changes.
 
 ## Handover format
 For each milestone add date, source commit, changes, tests actually executed and results, evidence paths, decisions and blockers, next action. Never record intended work as completed. Target Dec 4 review, Dec 6 ready, Dec 7 10:00 WAT deadline. No new track.

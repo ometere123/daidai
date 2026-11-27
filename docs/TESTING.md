@@ -32,3 +32,15 @@ Use README and .github/workflows/ci.yml as exact source. Root npm ci, npm run ty
 Record exact reviewed commit, approved invoice, source of funds, recipient consent, cap and native fee limits (including allowance), wallet identity, live provider capabilities, actual quote and explicit approval at every send. Verify current chain/token addresses/decimals. No automatic retry. Confirm finalized conversion via both independent reads; stop process intentionally only after known conversion; reopen, reverify and approve only payout. Verify final payout and recipient acceptance. Keep actual transaction refs, observed block/time, tag and Loops credit; do not disclose credentials or private invoice details. Never rerun a real transaction solely to test or rehearse.
 
 Complete means all R01–R12 pass with explicit offline/live evidence, successful exact-head CI, independently completed commercial job, no unresolved critical security/deployment issue and honest demo. If not, label status incomplete. Baseline reports remain historical.
+
+## Hosted gates (PDR-002)
+Every hosted route needs its row to pass at the exact head, offline first, before any live step.
+| Gate | Evidence |
+|---|---|
+| Wallet authentication | Typed-data proof tests: wrong signer, wrong audience, wrong chain, expired, future-dated, replayed nonce, truncated and malformed signatures, concurrent use of one proof (exactly one session), session fixation, logout and revocation |
+| Taker identity | Authenticated wallet equals the invoice taker for every claim and confirmation; another wallet, another tenant and a revoked session are refused; no route accepts a taker, role or tenant from the browser |
+| Journal parity | The journal suite (atomic claim, crash after claim, unknown outcome, verification in a fresh process, reorg, expiry, tamper) passes against node:sqlite and against local D1 with identical assertions; one adapter cannot import the other's state |
+| Boundary | Hosted write routes reject missing or replayed HMAC, wrong origin, missing CSRF, oversized bodies, unknown fields and rate-limit exhaustion; no route exists that sends, signs or proxies RPC; responses contain no secret, provider URL or other tenant's data |
+| Wallet integration | Real extension, read-only first: account access, chain, balance and allowance reads; account or chain change invalidates a pending job; the sent bytes equal the claimed envelope; rejection and closed tab leave a retained claim and no resend |
+| Demo isolation | The demo shares no route, storage or live-data component with hosted pages; no synthetic hash is rendered by a hosted page |
+| Gate opening | Link crawl and private-route matrix in every profile; owner approval of the exact destination recorded in PROGRESS |
