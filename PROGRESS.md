@@ -18,9 +18,14 @@ Updated 2026-11-27; P14 blueprint. Baseline main d8373ab3f10de65d611ee8aa44e0ec0
 | P0 | Loops indexing/current identity unverified | Read-only dashboard/chain check; retain existing wallet/code/agent; no re-registration. |
 | P0 | No conversion or external payout | M3 after M0–M2 and separate financial approval. Collect genuine receipts and user acknowledgment. |
 | P1 | Dead links and split visual language | Gate-aware public nav and reuse existing Ink and Brass; independent work may begin. |
-| Documentation | Exact six original instructions missing | Obtain original text and insert verbatim into AGENTS.md; derived rules explicitly marked. |
+| Documentation | Phase Five supplied six tagged excerpts and over-engineering rule | Preserved verbatim in AGENTS.md; earlier historical wording not independently recovered. |
 
 Next highest priority: **M0 read-only RPC capability qualification and real pilot recruitment in parallel**, then M1 journal mapping/restart tests. Do not enable dispatch until all gates in TESTING pass. Before any work, inspect current main and PR status; do not overwrite concurrent changes.
 
 ## Handover format
 For each milestone add date, source commit/PR, changes, tests actually executed/results, evidence paths, decisions and blockers, next action. Never record intended work as completed. Target Dec 4 review, Dec 6 ready, Dec 7 10:00 WAT deadline. No new track.
+
+## Phase Five handoff — 2026-11-27
+- Reviewed all governing documents on blueprint branch. Main remains d8373ab; PR #1 open, unmerged and mergeable at time checked; CI run 46068309106 was in progress, not a pass.
+- Local execution probe: Node v22.16.0, Git 2.47.3; git ls-remote https://github.com/ometere123/daidai.git HEAD failed with DNS 'Could not resolve host: github.com'. No checkout/dependencies/build/tests available locally; GitHub connector can read/write files, not run local integration tests or interact with MetaMask. No implementation or financial operations performed. Recommend local Codex (or Claude Code) in real checkout with approved network access; follow M0 then M1, no blind dispatch.
+- Owner supplied exact Phase Five instructions; AGENTS.md now includes verbatim excerpts. Use one implementation agent on a single working branch; use a second agent only for independent review, not simultaneous competing edits. Keep PR and CI status current; do not merge or deploy without review of applicable gates.
