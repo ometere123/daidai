@@ -97,11 +97,8 @@ button:disabled { cursor: not-allowed; }
 @media (min-width: 1024px) { .display-amount { font-size: 3.5rem; line-height: 3.5rem; } }
 
 /* ------------------------------------------------------------------ brand */
-.wordmark { display: inline-flex; align-items: baseline; font-weight: 600; font-size: 1.5rem; line-height: 1; letter-spacing: -0.03em;
-  font-variant-ligatures: none; color: var(--color-ink); --wm-dot: var(--color-brass-deep); }
-.wordmark.on-ink { color: var(--color-paper); --wm-dot: var(--color-brass); }
-.wm-i { position: relative; display: inline-block; }
-.wm-dot { position: absolute; left: 50%; top: -.02em; width: .2em; height: .2em; background: var(--wm-dot); transform: translateX(-50%) rotate(45deg); }
+/* The wordmark is an SVG (brand.tsx); its colours come from the ink and brass tokens, sizes from the contexts below. */
+.wordmark { flex: none; }
 
 .plumb-bob { flex: none; overflow: visible; }
 .plumb-bob .pb-line { stroke: var(--color-ink); stroke-width: 1.25; }

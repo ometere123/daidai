@@ -1,15 +1,12 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
+import { BrandWordmark } from './brand';
 import { formatNumber, type Token } from './model';
 
-/** The Daidai wordmark: Schibsted 600, the dots of both i's replaced by level brass diamonds. */
+/** The Daidai wordmark (see brand.tsx): constructed from circles and strokes, the i-dots in brass. */
 export function Wordmark({ onInk = false, className = '' }: { onInk?: boolean; className?: string }) {
-  const i = <span className="wm-i" aria-hidden="true">ı<span className="wm-dot" /></span>;
-  return <span className={'wordmark' + (onInk ? ' on-ink' : '') + (className ? ' ' + className : '')}>
-    <span className="sr-only">Daidai</span>
-    <span aria-hidden="true">Da</span>{i}<span aria-hidden="true">da</span>{i}
-  </span>;
+  return <BrandWordmark onInk={onInk} className={'wordmark' + (className ? ' ' + className : '')} />;
 }
 
 /** The plumb bob: a hairline into a brass diamond whose point lands on an ink baseline. */

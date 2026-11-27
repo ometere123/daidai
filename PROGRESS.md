@@ -21,6 +21,12 @@ Deployment provenance (P0), resolved by inspection of the Vercel account. daidai
 Live /proof evidence observed through the account: Ankr reported the finalized registration (block 0x4f9cc45, finalized head 0x4fb2f6c) while Forno reported a missing receipt, so the page correctly shows unresolved.
 Not done: Loops enrollment re-check, live Textile preview, RPC qualification run, pilot payer and supplier recruitment.
 
+### R11 — gate-aware public experience, first pass (2026-11-27)
+Source: apps/web site-nav.tsx (now async and gate-aware), app/page.tsx, app/brand.tsx (new), app/ui.tsx, app/product-site.css, app/icon.svg and the three PNG icons, scripts/p13-product-smoke.mjs. Changes: the public release no longer offers any door that answers 404 (the audit found Invoices, Activity, Sign in and the main "Create an invoice" button all returning 404). The nav lists Invoices, Pay and Activity only when the private gate is open and hides Sign in once a session cookie exists; the landing page leads with the demo workspace and the public proof when the gate is closed and says plainly that live invoicing is invite-only. The landing page now shows a labelled sample slab taken from the synthetic demo workspace instead of a credential card, replaces the three-column feature row with a numbered four-step flow (a real sequence), and drops the mono eyebrow. The approved constructed wordmark and "d" mark replace the old logo in the nav, the demo rail and top bar, the favicon, the Apple icon and the manifest icons. Routes that read the gate at request time are dynamic.
+Tests actually run: p13 smoke now also fails if the public profile offers Invoices, Activity, Sign in or Create an invoice, and crawls every same-origin link on every public page (15 distinct links, all 200); reintroducing an always-visible Invoices link made it fail with "/ offers Invoices", then the fix was restored. Web typecheck clean; production and demo builds pass; model 4 of 4; fixture browser 14 of 14; P10.4 3 of 3; P10.5 5 of 5; full-stack merchant-to-payer journey 30 of 30; smoke passes under both the CI environment and the exact public-release environment. Rendered and inspected at 1440, 820 and 390 px; two defects in my own stylesheet (stacked buttons from a dangling selector, and media queries ordered before their base rule) were found by looking at the render and fixed.
+Evidence: docs/evidence/m4-landing/ (home desktop, home mobile, demo desktop).
+Not done: /proof and /agent still lack the verdict band, labelled hashes and dated recorded snapshot; /demo still shows the site nav above the workspace rail (two wordmarks); the authenticated pages still use generic cards instead of the demo components; keyboard and axe checks were not re-run on the new landing page.
+
 ## Open blockers and next action
 | Priority | Blocker | Next evidence |
 |---|---|---|
@@ -31,10 +37,10 @@ Not done: Loops enrollment re-check, live Textile preview, RPC qualification run
 | P0 | Production variables left over from the untraced deployment | Owner deletes the five variables listed above; rotate the service key |
 | P0 | Loops indexing and current identity unverified | Read-only dashboard and chain check; retain existing wallet, code and agent; no re-registration |
 | P0 | No conversion or external payout | M3 after M2 and a separate financial approval |
-| P1 | Dead public navigation and split visual language | Gate-aware nav and CTA, reuse of Ink and Brass, approved wordmark applied (next engineering task) |
+| P1 | Split visual language remains on /proof, /agent and the authenticated pages | Verdict band, labelled hashes and recorded snapshot on /proof and /agent; authenticated pages on the demo components; hide the site nav inside /demo. Dead links and the old logo are fixed (R11 first pass) |
 | Deferred | Hosted sign-in (an identity-provider app id was offered) | Not on the P0 path: the pilot is a local journal. Revisit only after M3 and a separate review |
 
-Next highest priority: the gate-aware public experience (R11), which needs no external access, in parallel with the owner running the M0 probe and recruiting the pilot. Then M2 once liveReady is true. Do not enable dispatch until every gate in TESTING passes. Before any work, inspect current main and PR status; do not overwrite concurrent changes.
+Next highest priority: finish R11 (/proof and /agent evidence layout, /demo chrome, authenticated pages on the demo components), which needs no external access, in parallel with the owner running the M0 probe and recruiting the pilot. Then M2 once liveReady is true. Do not enable dispatch until every gate in TESTING passes. Before any work, inspect current main and PR status; do not overwrite concurrent changes.
 
 ## Handover format
 For each milestone add date, source commit, changes, tests actually executed and results, evidence paths, decisions and blockers, next action. Never record intended work as completed. Target Dec 4 review, Dec 6 ready, Dec 7 10:00 WAT deadline. No new track.
