@@ -60,3 +60,7 @@ All suites run offline with synthetic data and no secrets. CI runs them on every
 - [Controlled launch plan](P12-CONTROLLED-LAUNCH.md)
 
 The starter framework informs project organization: [Starter framework](https://github.com/udaysharmadev/Hackathon-Starter-Pack-Complete-Guide-Roadmap)
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
